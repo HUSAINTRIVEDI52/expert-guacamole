@@ -6,6 +6,8 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "echo \"No tests defined yet\"",
+    "lint-staged": "lint-staged",
     "prepare": "husky"
   },
   "devDependencies": {
