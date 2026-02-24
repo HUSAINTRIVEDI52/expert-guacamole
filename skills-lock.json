@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "baoyu-image-gen": {
+      "source": "jimliu/baoyu-skills",
+      "sourceType": "github",
+      "computedHash": "c561f9b282d4abf1e70165b4e97f0bd13cf19ce412372a759e410e864704a043"
+    },
+    "monorepo-management": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "38d2b028c93fb90fd7071dd7ffb4d8b4925ce970f6a16a151524f9be60e0d64b"
+    },
+    "vue": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "computedHash": "9c241141e07e836e4f0537c63e8f929fba3767c2997250be38e699f19b75e3f2"
+    }
+  }
+}
