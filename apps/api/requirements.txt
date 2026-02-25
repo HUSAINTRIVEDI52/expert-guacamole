@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 ruff
+sqlalchemy
+pydantic-settings
+python-dotenv
+loguru
