@@ -1,0 +1,22 @@
+---
+description: Rules for Stripe payments and preventing duplicate lead purchases
+globs: apps/api/app/api/v1/payments/*, apps/api/app/services/suppression.py
+---
+
+# Transaction & Suppression Rules
+
+## Suppression Logic
+
+- **Deterministic Suppression:** Before finalizing a count or purchase, you MUST subtract leads previously purchased by the User ID.
+- Never allow a user to pay for the same Lead ID twice.
+
+## Stripe Workflow
+
+1. Create Stripe Session.
+2. Listen for `checkout.session.completed` webhook.
+3. Upon success: Mark leads as purchased, trigger CSV generation, and upload to Cloud Storage.
+
+## Security
+
+- Validate Stripe webhook signatures.
+- Enforce a "Max leads cap" per transaction as defined in the Performance Strategy.

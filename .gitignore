@@ -49,6 +49,6 @@ next-env.d.ts
 *.swo
 
 # AI Agents
-.agent/
-.agents/
-.cursor/
+# .agent/
+# .agents/
+# .cursor/

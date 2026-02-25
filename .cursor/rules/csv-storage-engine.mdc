@@ -1,0 +1,16 @@
+---
+description: Rules for CSV generation, Cloud Storage, and secure downloads
+globs: apps/api/app/services/storage.py, apps/web/src/features/downloads/**/*
+---
+
+# CSV & Storage Rules
+
+## Generation & Security
+
+- CSVs must be generated server-side after payment confirmation.
+- Files must be uploaded to **Cloud Storage** (S3/GCS) with restricted access.
+- Provide users with a **Secure/Signed Download Link**, not a public URL.
+
+## Data Retention
+
+- Ensure the purchase history allows for re-downloading existing files without re-triggering the Data Axle API.

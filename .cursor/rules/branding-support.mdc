@@ -1,0 +1,18 @@
+---
+description: UI standards and the FAQ-based Support Assistant logic
+globs: apps/web/src/components/ui/*, apps/api/app/services/support.py
+---
+
+# UI & Support Rules
+
+## UI Standards
+
+- Framework: Next.js + TailwindCSS.
+- Components: Use the shadcn/ui library.
+- Ensure the dashboard is responsive and mobile-friendly.
+
+## Support Assistant (Non-AI)
+
+- The Support Assistant is **Rule-Based/FAQ-lookup only**.
+- DO NOT implement generative AI or LLM learning for the support module.
+- If no match is found, trigger the **Escalation Email** service.

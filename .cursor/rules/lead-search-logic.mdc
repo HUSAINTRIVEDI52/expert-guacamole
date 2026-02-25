@@ -1,0 +1,22 @@
+---
+description: Rules for Map-based geography selection and Data Axle filtering
+globs: apps/web/src/features/search/**/*, apps/api/app/services/data_axle.py
+---
+
+# Lead Search & Geography Rules
+
+## Geographic Selection
+
+- Geography is strictly limited to **ZIP code polygons** and **County Clusters**.
+- No radius search or free-hand polygon drawing is allowed (per Tech Doc Section 3.2).
+
+## Data Axle Integration
+
+- Use the **People Dataset** (Consumer) only.
+- Mandatory Filters: Geography, Profession (if B2C access confirmed), Net Worth, Age, Recently Moved.
+- All lead counts displayed to the user MUST be anonymized and masked (PII protection).
+
+## Performance
+
+- Frontend requests to the search API must be **debounced**.
+- Use **Redis caching** for repeated search queries to save Data Axle API credits.
