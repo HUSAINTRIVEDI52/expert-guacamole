@@ -1,16 +1,20 @@
+import os
 import time
+from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import crud, models, schemas
 from .database import engine, get_db
 from .logger import setup_logging
+from .routers import lead_search
 
-# Load environment variables from .env file
-load_dotenv()
+# Load .env from the api package directory (apps/api/.env)
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # Initialize enhanced logging
 logger = setup_logging()
@@ -18,6 +22,17 @@ logger = setup_logging()
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SUL API", description="Enhanced Logging Integrated")
+
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").strip().split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in allowed_origins if o.strip()],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(lead_search.router, prefix="/api", tags=["lead-search"])
 
 
 @app.middleware("http")
