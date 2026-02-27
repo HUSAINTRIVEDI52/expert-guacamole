@@ -1,6 +1,7 @@
 {
   "extends": "@sul/typescript-config/base.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
