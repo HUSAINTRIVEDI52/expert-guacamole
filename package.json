@@ -4,7 +4,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "dev:api": "cd apps && python3 -m uvicorn api.main:app --reload --port 8000",
+    "dev:api": "cd apps/api && python3 -m uvicorn main:app --reload --port 8000",
     "dev:web": "pnpm --filter web dev",
     "lint": "turbo lint",
     "lint:py": "ruff check apps/api/ && ruff format --check apps/api/",

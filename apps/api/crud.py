@@ -1,10 +1,13 @@
+import uuid
+
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+import models
+import schemas
 
 
-def get_user(db: Session, user_id: int):
+def get_user(db: Session, user_id: uuid.UUID):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
 
@@ -18,8 +21,9 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 def create_user(db: Session, user: schemas.UserCreate):
     logger.info(f"Creating user with email: {user.email}")
+    # In a real app, we'd hash the password properly (e.g., bcrypt/argon2)
     fake_hashed_password = user.password + "notreallyhashed"
-    db_user = models.User(email=user.email, hashed_password=fake_hashed_password)
+    db_user = models.User(email=user.email, password_hash=fake_hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -27,15 +31,4 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 
-def get_tasks(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Task).offset(skip).limit(limit).all()
-
-
-def create_user_task(db: Session, task: schemas.TaskCreate, user_id: int):
-    logger.info(f"Creating task for user_id: {user_id}")
-    db_task = models.Task(**task.model_dump(), owner_id=user_id)
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    logger.success(f"Task created successfully for user_id: {user_id}")
-    return db_task
+# Other CRUD operations for SearchRequest, Purchase, etc. can be added as needed.

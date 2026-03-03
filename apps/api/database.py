@@ -1,9 +1,15 @@
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from loguru import logger
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Load .env in case it's not loaded by main.py
+env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(env_path)
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 

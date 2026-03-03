@@ -3,11 +3,15 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from ..schemas import LeadSearchRequest, LeadSearchResponse
-from ..services.data_axle_service import search as data_axle_search
-from ..services.suppression import build_suppression_filter
+from auth.dependencies import get_current_user
+from database import get_db
+from models import User
+from schemas import LeadSearchRequest, LeadSearchResponse
+from services.data_axle_service import search as data_axle_search
+from services.suppression import build_suppression_filter
 
 router = APIRouter()
 
@@ -68,7 +72,11 @@ def _build_filter_dsl(req: LeadSearchRequest) -> dict[str, Any] | None:
 
 
 @router.post("/lead-search", response_model=LeadSearchResponse)
-def lead_search(req: LeadSearchRequest) -> LeadSearchResponse:
+def lead_search(
+    req: LeadSearchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> LeadSearchResponse:
     """
     Search Data Axle People with filters: net worth range, age range,
     recently moved, zip codes, county (FIPS). Optionally exclude person_ids.

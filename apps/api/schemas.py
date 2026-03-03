@@ -1,6 +1,10 @@
+import uuid
+from datetime import datetime
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
+
+# --- Lead Search (Legacy/External API) ---
 
 
 class LeadSearchRequest(BaseModel):
@@ -33,25 +37,11 @@ class LeadSearchResponse(BaseModel):
     documents: List[dict[str, Any]]
 
 
-class TaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-
-
-class TaskCreate(TaskBase):
-    pass
-
-
-class Task(TaskBase):
-    id: int
-    owner_id: int
-
-    class Config:
-        from_attributes = True
+# --- Internal Database Schemas ---
 
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class UserCreate(UserBase):
@@ -59,9 +49,63 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    id: int
+    id: uuid.UUID
     is_active: bool
-    tasks: List[Task] = []
+    role: str
+    created_at: datetime
+    updated_at: datetime
+    last_login_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SearchRequestBase(BaseModel):
+    filter_hash: str
+    normalized_filters: dict
+    geography: dict
+    estimated_count: Optional[int] = None
+    estimated_price: Optional[float] = None
+
+
+class SearchRequest(SearchRequestBase):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PurchaseBase(BaseModel):
+    lead_count: int
+    price_per_lead: float
+    total_amount: float
+    currency: str = "USD"
+    status: str
+
+
+class Purchase(PurchaseBase):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    search_request_id: Optional[uuid.UUID] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FAQEntryBase(BaseModel):
+    question: str
+    answer: str
+    keywords: List[str] = []
+    is_active: bool = True
+
+
+class FAQEntry(FAQEntryBase):
+    id: uuid.UUID
+    created_at: datetime
 
     class Config:
         from_attributes = True

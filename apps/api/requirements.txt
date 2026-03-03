@@ -6,3 +6,6 @@ pydantic-settings
 python-dotenv
 loguru
 httpx
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
