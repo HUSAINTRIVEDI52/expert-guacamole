@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 interface LeadResultsPreviewProps {
   onBack: () => void;
@@ -74,15 +74,66 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
   onBack,
   leadCount,
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const pricePerLead = 2.5;
-  const totalPrice = (leadCount * pricePerLead).toLocaleString();
+  const totalPriceNumber = leadCount * pricePerLead;
+  const totalPrice = totalPriceNumber.toLocaleString();
+
+  const handlePurchase = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+      const response = await fetch(
+        `${API_BASE_URL}/payments/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            total_amount: totalPriceNumber,
+            lead_count: leadCount,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.detail || "Failed to initialize checkout");
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned from server");
+      }
+    } catch (err: unknown) {
+      console.error("Purchase error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={onBack}
-          className="group flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+          disabled={loading}
+          className="group flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-50"
         >
           <svg
             className="h-4 w-4 transition-transform group-hover:-translate-x-1"
@@ -153,6 +204,27 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
         </div>
       </div>
 
+      {error && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {error}
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-800/50">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -222,24 +294,53 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
           </table>
         </div>
         <div className="bg-zinc-50/50 p-6 flex flex-col items-center justify-center border-t border-zinc-100 dark:bg-zinc-800/30 dark:border-zinc-800">
-          <button className="flex items-center gap-2 rounded-xl bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-xl transition-all hover:bg-zinc-800 hover:scale-[1.02] active:scale-[0.98]">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            Purchase Full Lead Data
+          <button
+            onClick={handlePurchase}
+            disabled={loading}
+            className="group relative flex items-center gap-2 rounded-xl bg-zinc-900 px-8 py-3.5 text-sm font-semibold text-white shadow-xl transition-all hover:bg-zinc-800 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Preparing Checkout...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                Purchase Full Lead Data
+              </>
+            )}
+            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/10 transition-all group-hover:h-full group-hover:bg-white/5" />
           </button>
           <p className="mt-4 text-[10px] text-zinc-400">
-            Secure checkout via Stripe • Instant access to CRM-ready data
+            Secure checkout via Stripe
           </p>
         </div>
       </div>

@@ -9,3 +9,7 @@ httpx
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt
+google-auth
+requests
+stripe
+psycopg

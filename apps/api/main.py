@@ -1,7 +1,6 @@
 import os
 import time
 import uuid
-from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
@@ -15,11 +14,14 @@ import schemas
 from auth import routes as auth_routes
 from database import engine, get_db
 from logger import setup_logging
-from routers import lead_search
+from routers import lead_search, payments
 
 # Load .env at the very top
-env_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(env_path)
+# env_path = Path(__file__).resolve().parent / ".env"
+# load_dotenv(env_path)
+
+load_dotenv(".env")
+load_dotenv(".env.local", override=True)
 
 # Initialize enhanced logging
 logger = setup_logging()
@@ -41,6 +43,7 @@ app.add_middleware(
 
 app.include_router(auth_routes.router, prefix="/api", tags=["auth"])
 app.include_router(lead_search.router, prefix="/api", tags=["lead-search"])
+app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 
 
 @app.middleware("http")

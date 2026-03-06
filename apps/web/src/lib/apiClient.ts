@@ -33,19 +33,19 @@ async function fetchWrapper(endpoint: string, options: RequestOptions = {}) {
 export const apiClient = {
   get: (endpoint: string, options?: RequestOptions) =>
     fetchWrapper(endpoint, { ...options, method: "GET" }),
-  post: (endpoint: string, body?: any, options?: RequestOptions) =>
+  post: (endpoint: string, body?: unknown, options?: RequestOptions) =>
     fetchWrapper(endpoint, {
       ...options,
       method: "POST",
       body: JSON.stringify(body),
     }),
-  put: (endpoint: string, body?: any, options?: RequestOptions) =>
+  put: (endpoint: string, body?: unknown, options?: RequestOptions) =>
     fetchWrapper(endpoint, {
       ...options,
       method: "PUT",
       body: JSON.stringify(body),
     }),
-  patch: (endpoint: string, body?: any, options?: RequestOptions) =>
+  patch: (endpoint: string, body?: unknown, options?: RequestOptions) =>
     fetchWrapper(endpoint, {
       ...options,
       method: "PATCH",

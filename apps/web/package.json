@@ -9,12 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/stripe-js": "^8.9.0",
     "mapbox-gl": "^3.8.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@sul/eslint-config": "workspace:*",
+    "@sul/prettier-config": "workspace:*",
+    "@sul/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -22,9 +27,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "@sul/typescript-config": "workspace:*",
-    "@sul/eslint-config": "workspace:*",
-    "@sul/prettier-config": "workspace:*"
+    "typescript": "^5"
   }
 }

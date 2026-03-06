@@ -4,7 +4,26 @@ import { useRouter } from "next/navigation";
 
 declare global {
   interface Window {
-    google: any;
+    google: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string | undefined;
+            callback: (response: { credential: string }) => void;
+          }) => void;
+          renderButton: (
+            parent: HTMLElement,
+            config: {
+              theme: string;
+              size: string;
+              width: number;
+              text: string;
+              shape: string;
+            },
+          ) => void;
+        };
+      };
+    };
   }
 }
 
@@ -30,7 +49,9 @@ export const SocialLogin: React.FC = () => {
       }
     };
 
-    const handleCredentialResponse = async (response: any) => {
+    const handleCredentialResponse = async (response: {
+      credential: string;
+    }) => {
       setError(null);
       const result = await googleAuthAction(response.credential);
       if (result.success) {

@@ -11,8 +11,8 @@ export async function loginAction(formData: FormData) {
   try {
     const data = await apiClient.post("/auth/login", { email, password });
     await setAuthCookies(data.access_token, data.refresh_token);
-  } catch (error: any) {
-    return { error: error.message || "Login failed" };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Login failed" };
   }
 
   redirect("/dashboard"); // Redirect to a protected route after success
@@ -27,8 +27,8 @@ export async function signupAction(formData: FormData) {
   try {
     const data = await apiClient.post("/auth/register", { email, password });
     await setAuthCookies(data.access_token, data.refresh_token);
-  } catch (error: any) {
-    return { error: error.message || "Signup failed" };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "Signup failed" };
   }
 
   redirect("/dashboard");
@@ -44,7 +44,10 @@ export async function googleAuthAction(idToken: string) {
     const data = await apiClient.post("/auth/google", { id_token: idToken });
     await setAuthCookies(data.access_token, data.refresh_token);
     return { success: true };
-  } catch (error: any) {
-    return { error: error.message || "Google authentication failed" };
+  } catch (error: unknown) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Google authentication failed",
+    };
   }
 }

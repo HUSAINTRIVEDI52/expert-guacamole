@@ -19,7 +19,7 @@ export default function GeoSelectorExamplePage() {
     zips: [],
     counties: [],
   });
-  const [selectedPostalCodes, setSelectedPostalCodes] = useState<string[]>([]);
+  const [selectedPostalCodes] = useState<string[]>([]);
   const [selectedZipCodes, setSelectedZipCodes] = useState<string[]>([]);
   const [countiesList, setCountiesList] = useState<CountyListItem[]>([]);
   const [postalCodesList, setPostalCodesList] = useState<PostalCodeItem[]>([]);
@@ -326,7 +326,7 @@ export default function GeoSelectorExamplePage() {
                         <button
                           key={p.code}
                           type="button"
-                          onClick={() => handleTogglePostalCode(p.code)}
+                          onClick={() => handleToggleZipCode(p.code)}
                           className={`flex w-full justify-between border-b border-gray-100 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
                             selected ? "bg-blue-50" : ""
                           }`}
