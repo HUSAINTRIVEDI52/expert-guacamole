@@ -40,6 +40,16 @@ export default function LoginPage() {
         {error && (
           <div className="rounded-xl bg-red-50 p-4 text-[13px] font-medium text-red-600 border border-red-100">
             {error}
+            {error.includes("Google") && (
+              <div className="mt-2">
+                <Link
+                  href="/forgot-password"
+                  className="text-zinc-950 font-bold hover:underline"
+                >
+                  Click here to set a password
+                </Link>
+              </div>
+            )}
           </div>
         )}
         <div className="space-y-1.5">

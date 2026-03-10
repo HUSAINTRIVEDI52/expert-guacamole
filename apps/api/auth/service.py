@@ -34,6 +34,8 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = get_user_by_email(db, email)
     if not user:
         return None
+    if user.password_hash == "GOOGLE_AUTH_NO_PASSWORD":
+        return None
     if not verify_password(password, user.password_hash):
         return None
     return user
@@ -169,8 +171,13 @@ def generate_verification_code(length: int = 6) -> str:
     return "".join(random.choices(string.digits, k=length))
 
 
-async def create_verification_code(db: Session, user_id: uuid.UUID) -> str:
+def generate_verification_token() -> str:
+    return uuid.uuid4().hex
+
+
+async def create_verification_code(db: Session, user_id: uuid.UUID) -> Tuple[str, str]:
     code = generate_verification_code()
+    token = generate_verification_token()
     expires_at = datetime.utcnow() + timedelta(minutes=15)
 
     # Check if a code already exists for this user
@@ -179,16 +186,17 @@ async def create_verification_code(db: Session, user_id: uuid.UUID) -> str:
     )
     if existing_verification:
         existing_verification.code = code
+        existing_verification.token = token
         existing_verification.expires_at = expires_at
         existing_verification.created_at = datetime.utcnow()
     else:
         new_verification = EmailVerification(
-            user_id=user_id, code=code, expires_at=expires_at
+            user_id=user_id, code=code, token=token, expires_at=expires_at
         )
         db.add(new_verification)
 
     db.commit()
-    return code
+    return code, token
 
 
 async def verify_email_code(db: Session, email: str, code: str) -> bool:
@@ -215,4 +223,66 @@ async def verify_email_code(db: Session, email: str, code: str) -> bool:
     db.delete(verification)
     db.commit()
 
+    return True
+
+
+async def verify_email_token(db: Session, token: str) -> Optional[User]:
+    verification = (
+        db.query(EmailVerification)
+        .filter(
+            EmailVerification.token == token,
+            EmailVerification.expires_at > datetime.utcnow(),
+        )
+        .first()
+    )
+
+    if not verification:
+        return None
+
+    user = verification.user
+    # Mark user as verified
+    user.email_verified = True
+    # Delete the verification token
+    db.delete(verification)
+    db.commit()
+
+    return user
+
+
+async def create_password_reset_token(db: Session, email: str) -> Optional[str]:
+    user = get_user_by_email(db, email)
+    if not user:
+        return None
+
+    token = generate_verification_token()
+    user.reset_password_token = token
+    user.reset_password_expires_at = datetime.utcnow() + timedelta(hours=1)
+    db.commit()
+    return token
+
+
+async def reset_password(db: Session, token: str, new_password: str) -> bool:
+    user = (
+        db.query(User)
+        .filter(
+            User.reset_password_token == token,
+            User.reset_password_expires_at > datetime.utcnow(),
+        )
+        .first()
+    )
+
+    if not user:
+        return False
+
+    user.password_hash = hash_password(new_password)
+    user.reset_password_token = None
+    user.reset_password_expires_at = None
+    # If they reset password, they definitely own the email
+    user.email_verified = True
+    # If they set a password, they can now login via local provider too
+    if user.provider == "google":
+        # Keep google_sub but allowing local login
+        pass
+
+    db.commit()
     return True

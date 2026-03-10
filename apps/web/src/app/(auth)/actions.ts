@@ -51,3 +51,30 @@ export async function googleAuthAction(idToken: string) {
     };
   }
 }
+
+export async function forgotPasswordAction(formData: FormData) {
+  const email = formData.get("email") as string;
+  try {
+    await apiClient.post("/auth/forgot-password", { email });
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to send reset link",
+    };
+  }
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const token = formData.get("token") as string;
+  const password = formData.get("password") as string;
+  try {
+    await apiClient.post("/auth/reset-password", { token, password });
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to reset password",
+    };
+  }
+}

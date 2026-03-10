@@ -35,6 +35,8 @@ class User(Base):
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
     last_login_at = Column(DateTime)
+    reset_password_token = Column(String(255), unique=True, nullable=True)
+    reset_password_expires_at = Column(DateTime, nullable=True)
 
     sessions = relationship(
         "UserSession", back_populates="user", cascade="all, delete-orphan"
@@ -322,7 +324,8 @@ class EmailVerification(Base):
         nullable=False,
         unique=True,
     )
-    code = Column(String(6), nullable=False)
+    code = Column(String(6), nullable=True)
+    token = Column(String(255), nullable=True, unique=True)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 

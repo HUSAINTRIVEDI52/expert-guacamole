@@ -1,6 +1,8 @@
+import os
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from auth import schemas, service, utils
@@ -20,15 +22,15 @@ async def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     user = service.create_user(db, user_in)
 
     # Generate verification code and send email
-    code = await service.create_verification_code(db, user.id)
+    _, token = await service.create_verification_code(db, user.id)
     from services.postmark_service import postmark_service
 
-    await postmark_service.send_verification_email(user.email, code)
+    await postmark_service.send_verification_email(user.email, token)
 
     return {
         "message": (
             "Registration successful. Please check your email for the "
-            "verification code."
+            "verification link."
         ),
         "email": user.email,
     }
@@ -36,6 +38,18 @@ async def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.TokenResponse)
 def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
+    db_user = service.get_user_by_email(db, user_in.email)
+    if db_user and db_user.password_hash == "GOOGLE_AUTH_NO_PASSWORD":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "You haven't set a local password for this account yet. "
+                "Please use Google Login or 'Forgot Password' to set one "
+                "for email login."
+            ),
+            headers={"X-Auth-Type": "google_only"},
+        )
+
     user = service.authenticate_user(db, user_in.email, user_in.password)
     if not user:
         raise HTTPException(
@@ -57,6 +71,16 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
+
+
+@router.get("/verify-email")
+async def verify_email_link(token: str, db: Session = Depends(get_db)):
+    user = await service.verify_email_token(db, token)
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if not user:
+        return RedirectResponse(url=f"{frontend_url}/login?error=invalid_token")
+
+    return RedirectResponse(url=f"{frontend_url}/login?verified=true")
 
 
 @router.post("/verify-email")
@@ -89,19 +113,19 @@ async def resend_verification(
         # Don't reveal if user exists or not for security
         return {
             "message": (
-                "If this email is registered, a new verification code has been sent."
+                "If this email is registered, a new verification link has been sent."
             )
         }
 
     if user.email_verified:
         return {"message": "Email is already verified."}
 
-    code = await service.create_verification_code(db, user.id)
+    _, token = await service.create_verification_code(db, user.id)
     from services.postmark_service import postmark_service
 
-    await postmark_service.send_verification_email(user.email, code)
+    await postmark_service.send_verification_email(user.email, token)
 
-    return {"message": "Verification code resent successfully."}
+    return {"message": "Verification link resent successfully."}
 
 
 @router.post("/refresh", response_model=schemas.TokenResponse)
@@ -156,3 +180,35 @@ def google_auth(request: schemas.GoogleLoginRequest, db: Session = Depends(get_d
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)
+):
+    token = await service.create_password_reset_token(db, payload.email)
+    if token:
+        from services.postmark_service import postmark_service
+
+        await postmark_service.send_password_reset_email(payload.email, token)
+
+    # Always return success to avoid email enumeration
+    return {
+        "message": (
+            "If your email is in our system, you will receive a password reset link."
+        )
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: schemas.ResetPasswordRequest, db: Session = Depends(get_db)
+):
+    success = await service.reset_password(db, payload.token, payload.password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token.",
+        )
+
+    return {"message": "Password reset successfully. You can now log in."}

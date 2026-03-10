@@ -1,9 +1,13 @@
+import base64
+import hashlib
 import os
 from datetime import datetime, timedelta
 from typing import Union
 
+import bcrypt
 from jose import jwt
-from passlib.context import CryptContext
+
+# from passlib.context import CryptContext
 
 # Security configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-it-in-production")
@@ -11,15 +15,24 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _prehash(password: str) -> str:
+    """SHA-256 prehash to avoid bcrypt's 72-byte limit."""
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("utf-8")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    hashed = bcrypt.hashpw(_prehash(password).encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(
+        _prehash(plain_password).encode("utf-8"), hashed_password.encode("utf-8")
+    )
 
 
 def create_access_token(
