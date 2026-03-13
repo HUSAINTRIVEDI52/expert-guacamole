@@ -1,9 +1,17 @@
+import Image from "next/image";
 import React from "react";
 
 export const Logo: React.FC<{ className?: string }> = ({ className = "" }) => {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <svg
+      <Image
+        src="/logo-full.png"
+        alt="Sul Local Logo"
+        width={150}
+        height={55}
+        className="object-contain"
+      />
+      {/* <svg
         width="40"
         height="40"
         viewBox="0 0 40 40"
@@ -31,7 +39,7 @@ export const Logo: React.FC<{ className?: string }> = ({ className = "" }) => {
       <div className="flex flex-col leading-tight">
         <span className="text-xl font-bold text-zinc-800">Sul</span>
         <span className="text-xl font-bold text-zinc-800 -mt-1">Local</span>
-      </div>
+      </div> */}
     </div>
   );
 };

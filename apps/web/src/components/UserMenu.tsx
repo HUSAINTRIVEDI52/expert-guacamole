@@ -1,27 +1,20 @@
+"use client";
+
 import React from "react";
+import { useRouter } from "next/navigation";
 
 export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
   onMenuToggle,
 }) => {
+  const router = useRouter();
+
   return (
     <div className="flex items-center gap-4">
       {/* Language Selector */}
-      <div className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm shadow-sm cursor-pointer hover:bg-zinc-50 transition-colors">
+      {/* <div className="bg-[#EEEEEA] flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm shadow-sm cursor-pointer transition-colors">
+        <Image src={'/flag-icon.svg'} className="" width={30} height={30} alt="flag-icon" />
         <svg
-          className="h-4 w-4 text-zinc-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-          />
-        </svg>
-        <svg
-          className="h-3 w-3 text-zinc-400"
+          className="h-4 w-4 text-zinc-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -33,13 +26,30 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
             d="M19 9l-7 7-7-7"
           />
         </svg>
+      </div> */}
+
+      {/* auth buttons */}
+      <div className="flex flex-wrap gap-2.5">
+        <button
+          onClick={() => router.push("/login")}
+          className="bg-[#fff] hover:bg-[#0D6363]/90 text-[#0D6363] hover:text-white border border-[#0D6363] px-[20px] py-[10px] rounded-lg text-[15px] font-semibold transition-all active:scale-95 font-noto-sans cursor-pointer"
+        >
+          Log In
+        </button>
+        <button
+          onClick={() => router.push("/signup")}
+          className="bg-[#0D6363] hover:bg-[#0D6363]/90 text-white border border-[#0D6363] px-[20px] py-[10px] rounded-lg text-[15px] font-semibold transition-all active:scale-95 font-noto-sans cursor-pointer"
+        >
+          Sign Up
+        </button>
       </div>
 
       {/* Profile Section */}
-      <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 shadow-sm cursor-pointer hover:bg-zinc-50 transition-colors">
-        <span className="text-sm font-medium text-zinc-700">John Doe</span>
-        <div className="relative h-6 w-6 rounded-full bg-zinc-400 overflow-hidden">
-          {/* Placeholder for avatar */}
+      <div className="flex items-center gap-2 rounded-[40px] bg-[#F4F4F4] pl-[16px] pr-[12px] py-[5px]  transition-colors">
+        <span className="text-[15px] font-medium text-[#333333] font-noto-sans capitalize">
+          John Doe
+        </span>
+        <div className="relative h-[30px] w-[30px] rounded-full bg-zinc-400 overflow-hidden">
           <div className="flex h-full w-full items-center justify-center bg-zinc-200 text-[10px] text-zinc-500 font-bold">
             JD
           </div>
@@ -49,10 +59,10 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
       {/* Hamburger Menu */}
       <button
         onClick={onMenuToggle}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 transition-colors"
+        className="flex h-[40px] w-[48px] items-center justify-center rounded-full bg-[#0D6363] cursor-pointer transition-colors"
       >
         <svg
-          className="h-6 w-6 text-zinc-600"
+          className="h-6 w-6 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

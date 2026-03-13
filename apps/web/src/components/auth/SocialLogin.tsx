@@ -82,16 +82,16 @@ export const SocialLogin: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-col items-center">
-        <div ref={googleButtonRef} className="w-full flex justify-center" />
+      <div className="relative flex items-center gap-4 py-2">
+        <div className="flex-grow border-t border-[#EEEEEA]"></div>
+        <span className="text-[15px] text-[#888888] uppercase tracking-wider font-noto-sans">
+          Or
+        </span>
+        <div className="flex-grow border-t border-[#EEEEEA]"></div>
       </div>
 
-      <div className="relative flex items-center gap-4 py-2">
-        <div className="flex-grow border-t border-zinc-100"></div>
-        <span className="flex-shrink text-[12px] font-medium text-zinc-400 uppercase tracking-wider">
-          Or continue with email
-        </span>
-        <div className="flex-grow border-t border-zinc-100"></div>
+      <div className="flex flex-col items-center">
+        <div ref={googleButtonRef} className="w-full flex justify-center" />
       </div>
     </div>
   );

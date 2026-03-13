@@ -9,8 +9,8 @@ export const Header: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-zinc-200 bg-white">
-      <div className="mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
+    <header className="h-[110px] sticky top-0 z-30 w-full bg-white shadow-[0px_1px_18px_0px_#0000001a]">
+      <div className="mx-auto flex h-full items-center justify-between px-[40px] lg:px-[80px]">
         {/* Left: Logo */}
         <Logo />
 

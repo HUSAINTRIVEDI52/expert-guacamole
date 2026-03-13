@@ -1,232 +1,103 @@
 import { NextResponse } from "next/server";
 
-/**
- * Helper: create a simple box polygon (visible at zoom 4) from center [lng, lat] and half-size in degrees.
- */
-function box(
-  lng: number,
-  lat: number,
-  half = 0.25,
-): [
-  [number, number],
-  [number, number],
-  [number, number],
-  [number, number],
-  [number, number],
-] {
-  return [
-    [lng - half, lat - half],
-    [lng + half, lat - half],
-    [lng + half, lat + half],
-    [lng - half, lat + half],
-    [lng - half, lat - half],
-  ];
-}
+const STATE_MAP: Record<string, { abbr: string; name: string }> = {
+  "01": { abbr: "al", name: "alabama" },
+  "02": { abbr: "ak", name: "alaska" },
+  "04": { abbr: "az", name: "arizona" },
+  "05": { abbr: "ar", name: "arkansas" },
+  "06": { abbr: "ca", name: "california" },
+  "08": { abbr: "co", name: "colorado" },
+  "09": { abbr: "ct", name: "connecticut" },
+  "10": { abbr: "de", name: "delaware" },
+  "11": { abbr: "dc", name: "district_of_columbia" },
+  "12": { abbr: "fl", name: "florida" },
+  "13": { abbr: "ga", name: "georgia" },
+  "15": { abbr: "hi", name: "hawaii" },
+  "16": { abbr: "id", name: "idaho" },
+  "17": { abbr: "il", name: "illinois" },
+  "18": { abbr: "in", name: "indiana" },
+  "19": { abbr: "ia", name: "iowa" },
+  "20": { abbr: "ks", name: "kansas" },
+  "21": { abbr: "ky", name: "kentucky" },
+  "22": { abbr: "la", name: "louisiana" },
+  "23": { abbr: "me", name: "maine" },
+  "24": { abbr: "md", name: "maryland" },
+  "25": { abbr: "ma", name: "massachusetts" },
+  "26": { abbr: "mi", name: "michigan" },
+  "27": { abbr: "mn", name: "minnesota" },
+  "28": { abbr: "ms", name: "mississippi" },
+  "29": { abbr: "mo", name: "missouri" },
+  "30": { abbr: "mt", name: "montana" },
+  "31": { abbr: "ne", name: "nebraska" },
+  "32": { abbr: "nv", name: "nevada" },
+  "33": { abbr: "nh", name: "new_hampshire" },
+  "34": { abbr: "nj", name: "new_jersey" },
+  "35": { abbr: "nm", name: "new_mexico" },
+  "36": { abbr: "ny", name: "new_york" },
+  "37": { abbr: "nc", name: "north_carolina" },
+  "38": { abbr: "nd", name: "north_dakota" },
+  "39": { abbr: "oh", name: "ohio" },
+  "40": { abbr: "ok", name: "oklahoma" },
+  "41": { abbr: "or", name: "oregon" },
+  "42": { abbr: "pa", name: "pennsylvania" },
+  "44": { abbr: "ri", name: "rhode_island" },
+  "45": { abbr: "sc", name: "south_carolina" },
+  "46": { abbr: "sd", name: "south_dakota" },
+  "47": { abbr: "tn", name: "tennessee" },
+  "48": { abbr: "tx", name: "texas" },
+  "49": { abbr: "ut", name: "utah" },
+  "50": { abbr: "vt", name: "vermont" },
+  "51": { abbr: "va", name: "virginia" },
+  "53": { abbr: "wa", name: "washington" },
+  "54": { abbr: "wv", name: "west_virginia" },
+  "55": { abbr: "wi", name: "wisconsin" },
+  "56": { abbr: "wy", name: "wyoming" },
+};
 
-/**
- * GET /api/geo/zip-codes
- * Returns GeoJSON FeatureCollection of ZIP code polygons.
- * Each feature must have properties: { zip_code: string, county_code: string }
- * Sample data: US ZIPs with approximate bounding boxes (visible on map at USA zoom).
- */
-export async function GET() {
-  const zipGeoJSON = {
-    type: "FeatureCollection" as const,
-    features: [
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "94102", county_code: "06075" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-122.42, 37.78)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "94103", county_code: "06075" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-122.41, 37.77)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "94105", county_code: "06075" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-122.39, 37.79)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "10001", county_code: "36061" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-74.01, 40.74)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "10002", county_code: "36061" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-73.99, 40.71)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "10003", county_code: "36061" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-73.99, 40.73)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "90210", county_code: "06037" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-118.4, 34.09)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "90211", county_code: "06037" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-118.38, 34.07)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "60601", county_code: "17031" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-87.63, 41.89)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "60602", county_code: "17031" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-87.63, 41.88)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "75201", county_code: "48113" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-96.8, 32.78)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "85001", county_code: "04013" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-112.07, 33.45)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "33101", county_code: "12086" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-80.19, 25.77)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "98101", county_code: "53033" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-122.33, 47.61)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "02101", county_code: "25025" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-71.06, 42.36)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "19102", county_code: "42101" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-75.17, 39.95)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "30301", county_code: "13089" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-84.39, 33.75)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "80202", county_code: "08031" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-104.99, 39.75)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "48201", county_code: "26163" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-83.05, 42.33)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "77001", county_code: "48201" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-95.36, 29.76)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "53202", county_code: "55079" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-87.91, 43.04)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "55401", county_code: "27053" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-93.27, 44.98)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "37201", county_code: "47037" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-86.78, 36.17)],
-        },
-      },
-      {
-        type: "Feature" as const,
-        properties: { zip_code: "70112", county_code: "22071" },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [box(-90.07, 29.96)],
-        },
-      },
-    ],
-  };
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const stateFips = searchParams.get("state");
 
-  return NextResponse.json(zipGeoJSON);
+  const emptyGeoJSON = { type: "FeatureCollection" as const, features: [] };
+
+  if (!stateFips || !STATE_MAP[stateFips]) {
+    return NextResponse.json(emptyGeoJSON);
+  }
+
+  const { abbr, name } = STATE_MAP[stateFips];
+  const url = `https://raw.githubusercontent.com/OpenDataDE/State-zip-code-GeoJSON/master/${abbr}_${name}_zip_codes_geo.min.json`;
+
+  try {
+    const res = await fetch(url, { next: { revalidate: 86400 } }); // cache for 1 day
+    if (!res.ok) {
+      console.warn(`Could not fetch zip codes for ${stateFips}: ${res.status}`);
+      return NextResponse.json(emptyGeoJSON);
+    }
+    const rawData: { type: string; features: unknown[] } = await res.json();
+
+    // Normalize the feature properties to expose `zip_code`
+    const features = (rawData.features || []).map((feature: any) => {
+      const p = feature.properties || {};
+      const zip = p.ZCTA5CE10 || p.ZCTA5 || p.zip_code || p.ZIP;
+      const zipStr = zip ? String(zip) : "";
+
+      return {
+        ...feature,
+        id: zip ? parseInt(zipStr, 10) : undefined,
+        type: "Feature",
+        properties: {
+          zip_code: zipStr,
+          county_code: "00000",
+        },
+      };
+    });
+
+    return NextResponse.json({
+      type: "FeatureCollection",
+      features,
+    });
+  } catch (e) {
+    console.error("Failed to fetch zip codes from GitHub:", e);
+    return NextResponse.json(emptyGeoJSON);
+  }
 }
