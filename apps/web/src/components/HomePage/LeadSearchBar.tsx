@@ -74,7 +74,7 @@ export function LeadSearchBar({ onSearch }: LeadSearchBarProps) {
 
   return (
     <div className="w-full bg-[#EEEEEA]/50 backdrop-blur-md rounded-[20px] p-3 shadow-xl">
-      <div className="flex flex-col sm:flex-row gap-[12px] items-stretch sm:items-center bg-white min-h-[160px] px-[48px] py-[24px] rounded-[20px]">
+      <div className="flex flex-col sm:flex-row gap-[12px] items-stretch sm:items-center bg-white xl:min-h-[160px] lg:min-h-[150px] min-h-[130px] xl:px-[48px] lg:px-[40px] px-[32px] xl:py-[24px] lg:py-[22px] py-[20px] rounded-[20px]">
         {/* Location Select (State) */}
         <div className="flex-1 relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D6363] z-10 pointer-events-none" />

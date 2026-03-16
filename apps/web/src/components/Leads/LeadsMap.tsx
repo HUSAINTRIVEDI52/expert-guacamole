@@ -746,7 +746,7 @@ export function LeadsMap({
     <div className="relative w-full h-full rounded-[16px] overflow-hidden border border-[#EEEEEA]">
       <div
         ref={containerRef}
-        className="w-full h-full min-h-[500px]"
+        className="w-full h-full min-h-[200px]"
         aria-label="Map for ZIP and County selection"
       />
 

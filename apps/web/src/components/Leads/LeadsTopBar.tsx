@@ -18,7 +18,7 @@ export function LeadsTopBar({
             <span className="text-[15px] text-[#333] font-noto-sans font-medium leading-[110%] capitalize mb-2">
               Available Leads
             </span>
-            <span className="text-[24px] font-semibold text-[#0D6363] font-noto-sans leading-[110%]">
+            <span className="xl:text-[24px] lg:text-[22px] text-[20px] font-semibold text-[#0D6363] font-noto-sans leading-[110%]">
               {availableLeads}
             </span>
           </div>

@@ -44,19 +44,19 @@ export const MainHomePage: React.FC = () => {
       />
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl w-full mx-auto px-[15px] pt-[100px] pb-[50px]">
+      <div className="relative z-10 max-w-7xl w-full mx-auto px-[15px] xl:pt-[100px] lg:pt-[80px] pt-[60px] pb-[50px]">
         {/* Heading */}
         <div className="mb-[30px]">
-          <h1 className="mb-[10px] text-white font-noto-sans font-bold text-[46px] leading-[110%]">
+          <h1 className="mb-[10px] text-white font-noto-sans font-bold xl:text-[46px] lg:text-[42px] text-[38px] leading-[110%]">
             Search and explore leads to grow your business
           </h1>
-          <h2 className="text-[20px] leading-[110%] font-noto-sans font-medium text-white/80">
+          <h2 className="xl:text-[20px] lg:text-[18px] text-[16px] leading-[110%] font-noto-sans font-medium text-white/80">
             Find and Engage High-Potential Accounts
           </h2>
         </div>
 
         {/* Search Bar */}
-        <div className="mb-[70px]">
+        <div className="xl:mb-[70px] lg:mb-[60px] mb-[50px]">
           <LeadSearchBar onSearch={handleSearch} />
         </div>
 

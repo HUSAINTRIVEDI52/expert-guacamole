@@ -76,7 +76,7 @@ function LeadsPageContent() {
       <div className="flex flex-wrap items-center lg:gap-[40px] gap-[20px] xl:mb-[20px] mb-[15px] w-full">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 lg:px-4 px-3 lg:py-2 py-1.5 lg:text-[18px] text-[16px] font-noto-sans font-medium text-[#333] bg-[#EEEEEA] hover:bg-[#EEEEEA]/80 transition-colors rounded-full cursor-pointer"
+          className="flex items-center gap-2 lg:px-4 px-3 lg:py-2 py-1.5 text-[16px] font-noto-sans font-medium text-[#333] bg-[#EEEEEA] hover:bg-[#EEEEEA]/80 transition-colors rounded-full cursor-pointer"
         >
           <ChevronLeft className="w-5.5 h-5.5" />
           Back
@@ -127,7 +127,7 @@ function LeadsPageContent() {
 
         {/* Right – Top Bar + Map */}
         <div className="flex-1 flex flex-col xl:gap-[24px] lg:gap-[20px] gap-[15px] min-w-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 bg-[#EEEEEA] p-1.5 rounded-[12px]">
               <button
                 onClick={() => setSelectionMode("zip")}
