@@ -10,7 +10,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="h-[110px] sticky top-0 z-30 w-full bg-white shadow-[0px_1px_18px_0px_#0000001a]">
-      <div className="mx-auto flex h-full items-center justify-between px-[40px] lg:px-[80px]">
+      <div className="mx-auto flex h-full items-center justify-between xl:px-[80px] lg:px-[40px] px-[20px]">
         {/* Left: Logo */}
         <Logo />
 

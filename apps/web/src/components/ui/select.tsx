@@ -13,16 +13,17 @@ interface SelectTriggerProps extends React.ComponentPropsWithoutRef<
   typeof SelectPrimitive.Trigger
 > {
   arrow?: boolean;
+  icon?: React.ReactNode;
 }
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   SelectTriggerProps
->(({ className, children, arrow = true, ...props }, ref) => (
+>(({ className, children, arrow = true, icon, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between whitespace-nowrap rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 py-2 text-[15px] font-noto-sans text-zinc-900 shadow-sm ring-offset-background placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-11 w-full items-center justify-between whitespace-nowrap rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 py-2 text-[15px] font-noto-sans text-[#333333] shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 data-[placeholder]:[&>span]:text-[#888888]",
       className,
     )}
     {...props}
@@ -30,20 +31,22 @@ const SelectTrigger = React.forwardRef<
     {children}
     <SelectPrimitive.Icon asChild>
       {/* <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" /> */}
-      {arrow && (
-        <svg
-          width="12"
-          height="6"
-          viewBox="0 0 12 6"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M5.35301 5.66533C5.40652 5.71715 5.47814 5.75951 5.56167 5.78878C5.64521 5.81804 5.73817 5.83333 5.83254 5.83333C5.92692 5.83333 6.01987 5.81804 6.10341 5.78878C6.18695 5.75951 6.25856 5.71715 6.31208 5.66533L11.5625 0.610125C11.6233 0.551818 11.6589 0.483524 11.6655 0.412663C11.6722 0.341802 11.6495 0.271085 11.6001 0.208194C11.5507 0.145304 11.4763 0.0926458 11.3852 0.055941C11.294 0.0192362 11.1895 -0.000111348 11.083 4.82054e-07H0.582131C0.475865 0.000293065 0.371729 0.0198895 0.280922 0.0566822C0.190114 0.0934749 0.116072 0.146072 0.0667562 0.208817C0.0174408 0.271562 -0.00528143 0.342081 0.00103305 0.41279C0.00734752 0.483499 0.0424598 0.551723 0.102594 0.610125L5.35301 5.66533Z"
-            fill="#333333"
-          />
-        </svg>
-      )}
+      {icon
+        ? icon
+        : arrow && (
+            <svg
+              width="12"
+              height="6"
+              viewBox="0 0 12 6"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M5.35301 5.66533C5.40652 5.71715 5.47814 5.75951 5.56167 5.78878C5.64521 5.81804 5.73817 5.83333 5.83254 5.83333C5.92692 5.83333 6.01987 5.81804 6.10341 5.78878C6.18695 5.75951 6.25856 5.71715 6.31208 5.66533L11.5625 0.610125C11.6233 0.551818 11.6589 0.483524 11.6655 0.412663C11.6722 0.341802 11.6495 0.271085 11.6001 0.208194C11.5507 0.145304 11.4763 0.0926458 11.3852 0.055941C11.294 0.0192362 11.1895 -0.000111348 11.083 4.82054e-07H0.582131C0.475865 0.000293065 0.371729 0.0198895 0.280922 0.0566822C0.190114 0.0934749 0.116072 0.146072 0.0667562 0.208817C0.0174408 0.271562 -0.00528143 0.342081 0.00103305 0.41279C0.00734752 0.483499 0.0424598 0.551723 0.102594 0.610125L5.35301 5.66533Z"
+                fill="#333333"
+              />
+            </svg>
+          )}
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));

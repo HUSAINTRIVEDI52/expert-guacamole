@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -65,8 +70,8 @@ interface OnboardingDialogProps {
 
 export function OnboardingDialog({ open, onComplete }: OnboardingDialogProps) {
   const [step, setStep] = useState(1);
-  const [profession, setProfession] = useState("");
-  const [location, setLocation] = useState("");
+  const [profession, setProfession] = useState<string | undefined>(undefined);
+  const [location, setLocation] = useState<string | undefined>(undefined);
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -75,7 +80,7 @@ export function OnboardingDialog({ open, onComplete }: OnboardingDialogProps) {
   };
 
   const handleComplete = () => {
-    onComplete({ profession, location });
+    onComplete({ profession: profession || "", location: location || "" });
   };
 
   return (
@@ -83,14 +88,14 @@ export function OnboardingDialog({ open, onComplete }: OnboardingDialogProps) {
       <DialogContent className="max-w-[470px] w-full rounded-[16px] bg-white p-[32px] shadow-2xl border-0 [&>button]:hidden p-[24px]">
         {/* Title */}
         <div className="text-center mb-[15px]">
-          <h2 className="font-lora font-semibold text-[30px] text-[#0D6363] leading-[110%] mb-[10px]">
+          <DialogTitle className="font-lora font-semibold text-[30px] text-[#0D6363] leading-[110%] mb-[10px]">
             Welcome to SUL Local
-          </h2>
-          <p className="text-[#333333] text-[15px] font-noto-sans leading-[120%]">
+          </DialogTitle>
+          <DialogDescription className="text-[#333333] text-[15px] font-noto-sans leading-[120%]">
             Tell us a bit about your work so we can show you more
             <br />
             relevant leads, insights, and recommendations.
-          </p>
+          </DialogDescription>
         </div>
 
         {/* Progress Bar */}

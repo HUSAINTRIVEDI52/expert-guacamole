@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 
 export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
   onMenuToggle,
@@ -10,6 +12,17 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
 
   return (
     <div className="flex items-center gap-4">
+      {/* faqs */}
+      <Link
+        href="/faqs"
+        className="bg-[#F4F4F4] min-h-[40px] flex items-center gap-[8px] rounded-[40px] px-[16px] py-[5px] text-[15px] cursor-pointer transition-colors no-underline"
+      >
+        <Image src="/Q-A-image.png" width={24} height={24} alt="faqs" />
+        <span className="text-[15px] font-medium text-[#333333] font-noto-sans">
+          FAQ's
+        </span>
+      </Link>
+
       {/* Language Selector */}
       {/* <div className="bg-[#EEEEEA] flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm shadow-sm cursor-pointer transition-colors">
         <Image src={'/flag-icon.svg'} className="" width={30} height={30} alt="flag-icon" />
@@ -45,7 +58,7 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
       </div>
 
       {/* Profile Section */}
-      <div className="flex items-center gap-2 rounded-[40px] bg-[#F4F4F4] pl-[16px] pr-[12px] py-[5px]  transition-colors">
+      <div className="flex items-center min-h-[40px] gap-2 rounded-[40px] bg-[#F4F4F4] pl-[16px] pr-[12px] py-[5px]  transition-colors">
         <span className="text-[15px] font-medium text-[#333333] font-noto-sans capitalize">
           John Doe
         </span>

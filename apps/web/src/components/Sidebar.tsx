@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -6,9 +9,11 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const router = useRouter();
   const menuItems = [
     {
       label: "My Leads",
+      href: "/my-account/all-leads",
       icon: (
         <svg
           className="h-5 w-5"
@@ -26,25 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       ),
     },
     {
-      label: "Favourite",
-      icon: (
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-          />
-        </svg>
-      ),
-    },
-    {
       label: "Profile",
+      href: "/my-account/profile",
       icon: (
         <svg
           className="h-5 w-5"
@@ -63,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
     {
       label: "Logout",
+      href: "/",
       icon: (
         <svg
           className="h-5 w-5"
@@ -102,21 +91,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         }`}
       >
         <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-sm font-semibold text-zinc-400 tracking-wider uppercase">
+          <h2 className="font-noto-sans text-[15px] font-semibold text-[#333333] tracking-wider uppercase">
             Menu
           </h2>
         </div>
         <nav className="p-2">
           {menuItems.map((item) => (
-            <button
-              key={item.label}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:bg-zinc-50 ${
-                item.className || "text-zinc-700"
-              }`}
-            >
-              <span className="text-zinc-400">{item.icon}</span>
-              {item.label}
-            </button>
+            <React.Fragment key={item.label}>
+              {item.label === "Logout" && (
+                <div className="mx-4 my-2 border-t border-[#888888]/30" />
+              )}
+              <button
+                onClick={() => {
+                  router.push(item.href);
+                  onClose();
+                }}
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 font-noto-sans text-[15px] font-medium transition-colors text-[#333333] hover:text-[#0D6363] hover:bg-zinc-50 cursor-pointer ${
+                  item.className || "text-[#333333]"
+                } ${item.label === "Logout" ? "text-[#333333]! hover:text-red-600!" : ""}`}
+              >
+                <span
+                  className={
+                    item.label === "Logout"
+                      ? "text-[#888888]!"
+                      : "text-[#0D6363]!"
+                  }
+                >
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
+            </React.Fragment>
           ))}
         </nav>
       </div>

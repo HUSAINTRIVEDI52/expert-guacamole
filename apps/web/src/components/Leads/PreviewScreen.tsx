@@ -138,12 +138,12 @@ export const PreviewScreen: React.FC = () => {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col h-full bg-[#f9fafb] px-[40px] lg:px-[80px] py-[24px] font-noto-sans overflow-y-auto">
+    <div className="flex flex-col h-full bg-[#f9fafb] xl:px-[80px] lg:px-[40px] px-[20px] py-[24px] font-noto-sans overflow-y-auto">
       {/* Back button */}
-      <div className="mb-[35px]">
+      <div className="xl:mb-[35px] lg:mb-[32px] mb-[20px]">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 px-4 py-2 text-[18px] font-noto-sans font-medium text-[#333] bg-[#EEEEEA] hover:bg-[#EEEEEA]/80 transition-colors rounded-full cursor-pointer"
+          className="flex items-center gap-2 lg:px-4 px-3 lg:py-2 py-1.5 lg:text-[18px] text-[16px] font-noto-sans font-medium text-[#333] bg-[#EEEEEA] hover:bg-[#EEEEEA]/80 transition-colors rounded-full cursor-pointer"
         >
           <ChevronLeft className="w-5.5 h-5.5" />
           Back to Search
@@ -188,8 +188,8 @@ export const PreviewScreen: React.FC = () => {
       </div>
 
       {/* Main Table Container */}
-      <div className="relative bg-white rounded-[16px] border border-[#F4F4F4] shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
-        <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1">
+      <div className="max-h-[540px] relative bg-white rounded-[16px] border border-[#F4F4F4] shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="custom-scrollbar flex-1 overflow-hidden">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-white z-10 border-b border-[#F4F4F4]">
               <tr>

@@ -68,7 +68,9 @@ interface LeadSearchBarProps {
 }
 
 export function LeadSearchBar({ onSearch }: LeadSearchBarProps) {
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedState, setSelectedState] = useState<string | undefined>(
+    undefined,
+  );
 
   return (
     <div className="w-full bg-[#EEEEEA]/50 backdrop-blur-md rounded-[20px] p-3 shadow-xl">
@@ -98,7 +100,7 @@ export function LeadSearchBar({ onSearch }: LeadSearchBarProps) {
 
         {/* Find Leads Button */}
         <button
-          onClick={() => onSearch(selectedState)}
+          onClick={() => onSearch(selectedState || "")}
           disabled={!selectedState}
           className="min-w-[200px] bg-[#F7B200] hover:bg-[#F7B200]/90 disabled:bg-[#F7B200]/50 disabled:cursor-not-allowed active:scale-95 text-[#333333] font-noto-sans font-medium text-[15px] px-8 h-16 rounded-[12px] transition-all uppercase cursor-pointer"
         >
