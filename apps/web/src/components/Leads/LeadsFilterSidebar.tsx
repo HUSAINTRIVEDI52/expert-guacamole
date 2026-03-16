@@ -319,7 +319,7 @@ function InlineCheckboxList({
               onChange={() => onToggle(opt.value)}
               className="h-3.5 w-3.5 rounded border-[#ccc] text-[#0D6363] accent-[#0D6363] cursor-pointer"
             />
-            <span className="text-[13px] font-noto-sans text-[#333333]">
+            <span className="text-[15px] font-noto-sans text-[#323232]">
               {opt.label}
             </span>
           </label>
@@ -360,7 +360,7 @@ function InlineRadioList({
             onChange={() => onChange(opt.value)}
             className="h-3.5 w-3.5 rounded-full border-[#ccc] text-[#0D6363] accent-[#0D6363] cursor-pointer"
           />
-          <span className="text-[13px] font-noto-sans text-[#333333]">
+          <span className="text-[15px] font-noto-sans text-[#323232]">
             {opt.label}
           </span>
         </label>

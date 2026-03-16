@@ -13,6 +13,7 @@ const ZIP_FILL_LAYER_ID = "leads-zip-fill";
 const ZIP_LINE_LAYER_ID = "leads-zip-line";
 const COUNTY_FILL_LAYER_ID = "leads-county-fill";
 const COUNTY_LINE_LAYER_ID = "leads-county-line";
+const COUNTY_LABEL_LAYER_ID = "leads-county-label";
 
 const USA_CENTER: [number, number] = [-98.5795, 39.8283];
 const DEFAULT_ZOOM = 4;
@@ -297,6 +298,19 @@ export function LeadsMap({
     }
     if (map.getLayer(COUNTY_LINE_LAYER_ID)) {
       map.setLayoutProperty(COUNTY_LINE_LAYER_ID, "visibility", "visible");
+      if (map.getLayer(COUNTY_LABEL_LAYER_ID)) {
+        map.setLayoutProperty(COUNTY_LABEL_LAYER_ID, "visibility", "visible");
+        // Apply filter to only show labels for the highlighted state in Zip mode
+        if (highlightedStateFips && selectionMode === "zip") {
+          map.setFilter(COUNTY_LABEL_LAYER_ID, [
+            "==",
+            ["slice", ["get", "county_code"], 0, 2],
+            highlightedStateFips,
+          ]);
+        } else {
+          map.setFilter(COUNTY_LABEL_LAYER_ID, null);
+        }
+      }
     }
   }, [map, selectionMode]);
 
@@ -474,6 +488,7 @@ export function LeadsMap({
             visibility:
               selectionModeRef.current === "county" ? "visible" : "none",
           },
+          minzoom: 0,
         });
 
         mapInstance.addLayer({
@@ -497,6 +512,27 @@ export function LeadsMap({
           layout: {
             visibility:
               selectionModeRef.current === "county" ? "visible" : "none",
+          },
+          minzoom: 0,
+        });
+
+        mapInstance.addLayer({
+          id: COUNTY_LABEL_LAYER_ID,
+          type: "symbol",
+          source: COUNTY_SOURCE_ID,
+          layout: {
+            "text-field": ["get", "name"],
+            "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+            "text-size": 12,
+            "text-anchor": "center",
+            "text-allow-overlap": false,
+            visibility: "visible",
+          },
+          minzoom: 0,
+          paint: {
+            "text-color": "#333333",
+            "text-halo-color": "rgba(255,255,255,0.8)",
+            "text-halo-width": 1,
           },
         });
 
@@ -531,6 +567,7 @@ export function LeadsMap({
           layout: {
             visibility: selectionModeRef.current === "zip" ? "visible" : "none",
           },
+          minzoom: 0,
         });
 
         mapInstance.addLayer({
@@ -554,6 +591,7 @@ export function LeadsMap({
           layout: {
             visibility: selectionModeRef.current === "zip" ? "visible" : "none",
           },
+          minzoom: 0,
         });
 
         mapInstance.addLayer({
