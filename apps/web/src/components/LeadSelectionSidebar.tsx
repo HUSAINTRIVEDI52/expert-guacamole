@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { XIcon, SearchIcon } from "@/icons";
 
 interface LeadSelectionSidebarProps {
   selectedZips: string[];
@@ -61,19 +62,7 @@ export const LeadSelectionSidebar: React.FC<LeadSelectionSidebarProps> = ({
                       className="text-zinc-300 hover:text-red-500 transition-colors"
                       aria-label={`Remove ${county.label}`}
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <XIcon className="h-4 w-4" />
                     </button>
                   </div>
                 ))
@@ -110,19 +99,7 @@ export const LeadSelectionSidebar: React.FC<LeadSelectionSidebarProps> = ({
                       className="text-zinc-300 hover:text-red-500 transition-colors"
                       aria-label={`Remove ${zip}`}
                     >
-                      <svg
-                        className="h-3 w-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <XIcon className="h-3 w-3" />
                     </button>
                   </div>
                 ))
@@ -155,19 +132,9 @@ export const LeadSelectionSidebar: React.FC<LeadSelectionSidebarProps> = ({
             disabled={totalSelected === 0}
             className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
           >
-            <svg
+            <SearchIcon
               className={`h-4 w-4 transition-transform group-hover:scale-110 ${totalSelected === 0 ? "opacity-20" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            />
             Find Results
             <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/10 transition-all group-hover:h-full group-hover:bg-white/5" />
           </button>

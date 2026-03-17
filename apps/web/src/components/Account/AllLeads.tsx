@@ -10,41 +10,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { MOCK_INVOICES } from "@/constants/leads";
+import { ReceiptIcon } from "@/icons";
 
-// Mock data based on the screenshot
-const MOCK_INVOICES = Array(10).fill({
-  date: "19th, Feb 2026",
-  number: "#5645738",
-  count: "15K",
-  amount: "$99.00",
-});
-
-const RecieptIcon = ({ className }: { className?: string }) => {
-  return (
-    <svg
-      className={className}
-      width="16"
-      height="20"
-      viewBox="0 0 16 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M10.75 4.75H4.75M10.75 8.75H4.75M10.75 12.75H6.75M0.75 0.75H14.75V18.75L13.718 17.866C13.3555 17.5553 12.8939 17.3846 12.4165 17.3846C11.9391 17.3846 11.4775 17.5553 11.115 17.866L10.083 18.75L9.052 17.866C8.68946 17.5551 8.22761 17.3842 7.75 17.3842C7.27239 17.3842 6.81054 17.5551 6.448 17.866L5.417 18.75L4.385 17.866C4.02253 17.5553 3.56088 17.3846 3.0835 17.3846C2.60611 17.3846 2.14447 17.5553 1.782 17.866L0.75 18.75V0.75Z"
-        stroke="#0D6363"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
+const RecieptIcon = ReceiptIcon;
 
 // Replace this with your actual YouTube video ID
 const YOUTUBE_VIDEO_ID = "nJ25yl34Uqw";
 
 export const AllLeads: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const totalPages = Math.ceil(MOCK_INVOICES.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedInvoices = MOCK_INVOICES.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+
+  const handlePageChange = (page: string) => {
+    setCurrentPage(parseInt(page));
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
   return (
     <div className="flex flex-col h-full bg-[#f9fafb] xl:px-[80px] lg:px-[40px] px-[20px] py-[24px] font-noto-sans">
       {/* Breadcrumb */}
@@ -74,11 +75,11 @@ export const AllLeads: React.FC = () => {
 
             {/* Table Body / Cards Body */}
             <div className="overflow-hidden mb-[10px]">
-              {MOCK_INVOICES.map((invoice, idx) => (
+              {paginatedInvoices.map((invoice, idx) => (
                 <React.Fragment key={idx}>
                   {/* Desktop View */}
                   <div
-                    className={`hidden lg:grid bg-white rounded-[10px] mb-[6px] grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] px-[10px] xl:px-[15px] py-[13px] items-center text-[15px] leading-[120%] text-[#333333] font-noto-sans transition-colors hover:bg-[#f3f4f6]/50 ${idx !== MOCK_INVOICES.length - 1 ? "border-b border-[#F4F4F4]" : ""}`}
+                    className={`hidden lg:grid bg-white rounded-[10px] mb-[6px] grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] px-[10px] xl:px-[15px] py-[13px] items-center text-[15px] leading-[120%] text-[#333333] font-noto-sans transition-colors hover:bg-[#f3f4f6]/50 ${idx !== paginatedInvoices.length - 1 ? "border-b border-[#F4F4F4]" : ""}`}
                   >
                     <div className="font-medium px-[5px]">{invoice.date}</div>
                     <div className="font-medium px-[5px]">{invoice.number}</div>
@@ -161,12 +162,15 @@ export const AllLeads: React.FC = () => {
                 <span className="font-noto-sans text-[14px] text-[#4E4F54]">
                   Leads per page:
                 </span>
-                <Select defaultValue="10">
+                <Select
+                  defaultValue={itemsPerPage.toString()}
+                  onValueChange={handleItemsPerPageChange}
+                >
                   <SelectTrigger
                     icon={<ChevronLeft className="w-5 h-5 rotate-270" />}
                     className="bg-white xl:h-11 h-9 border-0 rounded-[4px] shadow-none ring-0! ring-offset-0!  gap-2 w-auto cursor-pointer"
                   >
-                    <SelectValue placeholder="10" />
+                    <SelectValue placeholder={itemsPerPage.toString()} />
                   </SelectTrigger>
                   <SelectContent className="rounded-[12px]">
                     <SelectItem value="10">10</SelectItem>
@@ -178,30 +182,42 @@ export const AllLeads: React.FC = () => {
 
               <div className="flex items-center gap-6 sm:w-auto w-full sm:justify-start justify-between">
                 <div className="flex items-center gap-4">
-                  <Select defaultValue="2">
+                  <Select
+                    value={currentPage.toString()}
+                    onValueChange={handlePageChange}
+                  >
                     <SelectTrigger
                       icon={<ChevronLeft className="w-5 h-5 rotate-270" />}
                       className="bg-white xl:h-11 h-9 border-0 rounded-[4px] shadow-none ring-0! ring-offset-0!  gap-2 w-auto cursor-pointer"
                     >
-                      <SelectValue placeholder="2" />
+                      <SelectValue placeholder={currentPage.toString()} />
                     </SelectTrigger>
                     <SelectContent className="rounded-[12px]">
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {i + 1}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <span className="font-noto-sans text-[14px] text-[#4E4F54]">
-                    of 4 pages
+                    of {totalPages} pages
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button className="p-1.5 w-[44px] xl:h-[44px] h-9 flex items-center justify-center bg-white rounded-[4px] hover:bg-[#f3f4f6] transition-colors disabled:opacity-50 text-[#666666]">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className="p-1.5 w-[44px] xl:h-[44px] h-9 flex items-center justify-center bg-white rounded-[4px] hover:bg-[#f3f4f6] transition-colors disabled:opacity-50 text-[#666666] cursor-pointer"
+                  >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button className="p-1.5 w-[44px] xl:h-[44px] h-9 flex items-center justify-center bg-white rounded-[4px] hover:bg-[#f3f4f6] transition-colors disabled:opacity-50 text-[#0D6363]">
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 w-[44px] xl:h-[44px] h-9 flex items-center justify-center bg-white rounded-[4px] hover:bg-[#f3f4f6] transition-colors disabled:opacity-50 text-[#0D6363] cursor-pointer"
+                  >
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>

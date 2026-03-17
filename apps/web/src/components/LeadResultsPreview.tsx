@@ -1,6 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import {
+  ArrowLeftIcon,
+  UsersIcon,
+  AlertCircleIcon,
+  LoadingIcon,
+  CartIcon,
+} from "@/icons";
 
 interface LeadResultsPreviewProps {
   onBack: () => void;
@@ -135,19 +142,7 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
           disabled={loading}
           className="group flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-50"
         >
-          <svg
-            className="h-4 w-4 transition-transform group-hover:-translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
+          <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Back to Filters
         </button>
         <div className="flex items-center gap-3">
@@ -161,19 +156,7 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
         <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 text-white shadow-lg">
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
+              <UsersIcon className="h-6 w-6" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -207,19 +190,7 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
       {error && (
         <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm animate-in fade-in zoom-in-95 duration-300">
           <div className="flex items-center gap-2">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <AlertCircleIcon className="h-5 w-5" />
             {error}
           </div>
         </div>
@@ -301,39 +272,12 @@ export const LeadResultsPreview: React.FC<LeadResultsPreviewProps> = ({
           >
             {loading ? (
               <>
-                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+                <LoadingIcon className="animate-spin h-4 w-4 mr-2" />
                 Preparing Checkout...
               </>
             ) : (
               <>
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
+                <CartIcon className="h-4 w-4" />
                 Purchase Full Lead Data
               </>
             )}

@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { HamburgerIcon } from "@/icons";
 
 export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
   onMenuToggle,
@@ -66,19 +67,7 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
         onClick={onMenuToggle}
         className="flex h-[40px] w-[48px] items-center justify-center rounded-full bg-[#0D6363] cursor-pointer transition-colors"
       >
-        <svg
-          className="h-6 w-6 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
+        <HamburgerIcon className="h-6 w-6 text-white" />
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LocateIcon, LoadingIcon } from "@/icons";
 import type { Map as MapboxMap } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { CountyGeoJSON, ZipGeoJSON } from "@/components/GeoSelector/types";
@@ -773,49 +774,15 @@ export function LeadsMap({
           title="Zoom to selected locations"
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#EEEEEA] bg-white text-[#333333] shadow-sm hover:bg-[#F4F4F4] disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="3" />
-            <line x1="12" y1="2" x2="12" y2="4" />
-            <line x1="12" y1="20" x2="12" y2="22" />
-            <line x1="2" y1="12" x2="4" y2="12" />
-            <line x1="20" y1="12" x2="22" y2="12" />
-          </svg>
+          <LocateIcon />
         </button>
       </div>
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center rounded-[16px] bg-white/80">
           <div className="flex items-center gap-3">
-            <svg
-              className="animate-spin h-5 w-5 text-[#0D6363]"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <LoadingIcon className="animate-spin h-5 w-5 text-[#0D6363]" />
             <span className="text-sm text-[#888888] font-noto-sans">
-              Loading map…
+              Loading map...
             </span>
           </div>
         </div>
