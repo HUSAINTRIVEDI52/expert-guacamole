@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { AuthVideoFaq } from "../AuthVideoFaq";
 import { AuthMarquee } from "../AuthMarquee";
 import Image from "next/image";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { TextSlider } from "./TextSlider";
 
 // Replace this with your actual YouTube video ID
@@ -85,6 +85,7 @@ export const HomePage: React.FC = () => {
       {/* YouTube Video Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="p-0 border-0 bg-black max-w-4xl w-full">
+          <DialogTitle className="sr-only">Video Player</DialogTitle>
           <div className="relative w-full aspect-video">
             {open && (
               <iframe

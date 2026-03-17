@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Download,
-  Play,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-} from "lucide-react";
+import { Download, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Mock data based on the screenshot
 const MOCK_INVOICES = Array(10).fill({
@@ -248,6 +242,7 @@ export const AllLeads: React.FC = () => {
             {/* YouTube Video Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogContent className="p-0 border-0 bg-black max-w-4xl w-full">
+                <DialogTitle className="sr-only">Video Player</DialogTitle>
                 <div className="relative w-full aspect-video">
                   {open && (
                     <iframe

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const YOUTUBE_VIDEO_ID = "nJ25yl34Uqw";
 
@@ -79,6 +79,7 @@ export function AuthVideoFaq({
       {/* YouTube Video Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="p-0 border-0 bg-black max-w-4xl w-full">
+          <DialogTitle className="sr-only">Video Player</DialogTitle>
           <div className="relative w-full aspect-video">
             {open && (
               <iframe
