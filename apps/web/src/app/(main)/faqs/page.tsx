@@ -48,14 +48,15 @@ const FAQ_DATA = [
 
 export default function FAQPage() {
   return (
-    <div className="bg-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-12 text-center">
-          <h1 className="xl:text-4xl lg:text-3xl text-2xl font-bold font-noto-sans text-[#333333] mb-4">
+    <div className="bg-[#f9fafb] min-h-screen py-16 px-4 sm:px-6 lg:px-8 font-noto-sans">
+      <div className="max-w-3xl mx-auto">
+        <div className="lg:mb-[60px] mb-[40px] text-center">
+          <h1 className="text-3xl md:text-4xl font-semibold text-[#333333] mb-6 tracking-tight">
             Frequently Asked Questions
           </h1>
-          <p className="text-[#666666] font-noto-sans xl:text-lg text-md leading-[140%]">
-            Find answers to common questions about SUL and our services.
+          <p className="text-[#666666] text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+            Everything you need to know about SUL. Can't find the answer you're
+            looking for? Reach out to our team.
           </p>
         </div>
 
@@ -64,26 +65,41 @@ export default function FAQPage() {
             <AccordionItem
               key={index}
               value={`item-${index}`}
-              className="border-0 bg-[#F4F4F4] rounded-[16px] px-2 overflow-hidden shadow-sm"
+              className="border border-[#EEEEEA] bg-white md:rounded-[16px] rounded-[10px] px-2 overflow-hidden shadow-sm transition-all hover:shadow-md"
             >
               <AccordionTrigger
                 hideIcon={true}
-                className="hover:no-underline py-4 px-4 group cursor-pointer flex items-center"
+                className="hover:no-underline py-5 px-4 group cursor-pointer flex items-center justify-between gap-4"
               >
-                <span className="text-[18px] font-semibold text-[#333333] font-noto-sans text-left">
+                <span className="text-[18px] font-semibold text-[#333333] text-left leading-snug">
                   {item.question}
                 </span>
-                <div className="flex shrink-0 items-center justify-center w-8 h-8 rounded-lg bg-[#0D6363] group-data-[state=open]:bg-[#0D6363] transition-colors">
-                  <Plus className="w-5 h-5 text-white group-data-[state=open]:hidden" />
-                  <X className="w-5 h-5 text-white hidden group-data-[state=open]:block" />
+                <div className="flex shrink-0 items-center justify-center w-8 h-8 rounded-full bg-[#BDD8D9]/30 group-data-[state=open]:bg-[#0D6363] transition-all duration-300">
+                  <Plus className="w-4 h-4 text-[#0D6363] transition-transform group-data-[state=open]:hidden" />
+                  <X className="w-4 h-4 text-white hidden group-data-[state=open]:block" />
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4 text-[#444444] font-noto-sans text-[16px] leading-[150%]">
-                {item.answer}
+              <AccordionContent className="px-4 pb-6 text-[#666666] text-[16px] leading-[140%]">
+                <div className="pt-2 border-t border-[#f4f4f4]">
+                  {item.answer}
+                </div>
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
+
+        <div className="mt-[40px] text-center bg-white border border-[#EEEEEA] md:rounded-[16px] rounded-[10px] p-8 md:p-12 shadow-sm">
+          <h3 className="text-xl md:text-2xl font-semibold text-[#333333] mb-3">
+            Still have questions?
+          </h3>
+          <p className="text-[#666666] mb-8 text-[15px] md:text-base leading-[140%] font-medium">
+            Can't find the answer you're looking for? Please chat to our
+            friendly team.
+          </p>
+          <button className="px-8 py-3 rounded-xl bg-[#0D6363] hover:bg-[#0D6363]/90 text-white font-semibold text-[15px] transition-all active:scale-95 shadow-[0px_4px_10px_0px_#0D636340] cursor-pointer">
+            Get in Touch
+          </button>
+        </div>
       </div>
     </div>
   );

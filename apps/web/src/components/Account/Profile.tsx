@@ -73,7 +73,7 @@ export const Profile: React.FC = () => {
             My Profile
           </h1>
 
-          <div className="bg-white rounded-[20px] flex flex-col md:flex-row gap-[24px] items-start xl:p-[32px] lg:p-[25px] p-[20px]">
+          <div className="bg-white md:rounded-[20px] rounded-[10px] flex flex-col md:flex-row gap-[24px] items-start xl:px-[32px] lg:px-[25px] md:px-[15px] px-[10px] xl:py-[24px] py-[20px] shadow-md">
             {/* Avatar Section */}
             <div className="relative group">
               <input
@@ -99,9 +99,9 @@ export const Profile: React.FC = () => {
             </div>
 
             {/* Personal Information Form */}
-            <div className="flex-1 w-full flex flex-col gap-[24px]">
+            <div className="flex-1 w-full flex flex-col lg:gap-[24px] gap-[20px]">
               {/* Personal Information Card */}
-              <div className="bg-white border border-[#EEEEEA] rounded-[16px] p-[20px]">
+              <div className="bg-white border border-[#EEEEEA] md:rounded-[16px] rounded-[10px] xl:px-[24px] lg:px-[20px] px-[15px] xl:py-[24px] lg:py-[20px] py-[15px]">
                 <h2 className="font-noto-sans text-[18px] font-semibold text-[#333333] mb-[10px] capitalize">
                   Personal Information
                 </h2>
@@ -160,7 +160,7 @@ export const Profile: React.FC = () => {
               </div>
 
               {/* Password Card */}
-              <div className="bg-white border border-[#EEEEEA] rounded-[16px] p-[20px]">
+              <div className="bg-white border border-[#EEEEEA] md:rounded-[16px] rounded-[10px] xl:px-[24px] lg:px-[20px] px-[15px] xl:py-[24px] lg:py-[20px] py-[15px]">
                 <h2 className="font-noto-sans text-[18px] font-semibold text-[#333333] mb-[10px] capitalize">
                   Password
                 </h2>
@@ -187,8 +187,8 @@ export const Profile: React.FC = () => {
                 open={isPasswordDialogOpen}
                 onOpenChange={setIsPasswordDialogOpen}
               >
-                <DialogContent className="max-w-[480px] bg-white p-0 overflow-hidden border-0">
-                  <div className="p-[24px]">
+                <DialogContent className="max-w-[480px] w-[90%] bg-white p-0 overflow-hidden border-0">
+                  <div className="xl:p-[24px] lg:p-[20px] p-[15px]">
                     <div className="mb-5">
                       <DialogTitle className="text-[20px] font-noto-sans font-bold text-[#333333] mb-2">
                         Change Password
@@ -220,8 +220,8 @@ export const Profile: React.FC = () => {
               </Dialog>
 
               {/* Payment Methods Card */}
-              <div className="bg-white border border-[#EEEEEA] rounded-[16px] p-[20px] flex items-center justify-between">
-                <h2 className="font-noto-sans text-[18px] font-semibold text-[#333333] capitalize">
+              <div className="bg-white border border-[#EEEEEA] md:rounded-[16px] rounded-[10px] xl:px-[24px] lg:px-[20px] px-[15px] xl:py-[24px] lg:py-[20px] py-[15px] flex items-center justify-between">
+                <h2 className="font-noto-sans text-[18px] leading-[130%] font-semibold text-[#333333] capitalize">
                   Payment Methods
                 </h2>
                 <button className="px-6 h-[44px] rounded-[10px] bg-[#0D6363] hover:bg-[#0D6363]/90 text-[#F4F4F4] font-semibold text-[15px] flex items-center gap-2 transition-all cursor-pointer capitalize">

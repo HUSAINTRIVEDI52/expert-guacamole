@@ -68,8 +68,8 @@ export const AllLeads: React.FC = () => {
             All Leads
           </h1>
           <div className=" flex flex-col gap-[1px]">
-            {/* Table Header */}
-            <div className="grid grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] py-[14px] text-[16px] xl:text-[18px] leading-[110%] font-noto-sans font-medium text-[#888888]">
+            {/* Table Header (Desktop only) */}
+            <div className="hidden lg:grid grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] py-[14px] text-[16px] 2xl:text-[18px] leading-[120%] font-noto-sans font-medium text-[#888888]">
               <div className="capitalize px-[5px]">Invoice Date</div>
               <div className="capitalize px-[5px]">Invoice Number</div>
               <div className="capitalize px-[5px]">Lead Count</div>
@@ -78,34 +78,92 @@ export const AllLeads: React.FC = () => {
               <div className="text-center capitalize px-[5px]">.CSV File</div>
             </div>
 
-            {/* Table Body */}
+            {/* Table Body / Cards Body */}
             <div className="overflow-hidden mb-[10px]">
               {MOCK_INVOICES.map((invoice, idx) => (
-                <div
-                  key={idx}
-                  className={`bg-white rounded-[10px] mb-[6px] grid grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] px-[10px] xl:px-[15px] py-[13px] items-center text-[15px] leading-[120%] text-[#333333] font-noto-sans transition-colors hover:bg-[#f3f4f6]/50 ${idx !== MOCK_INVOICES.length - 1 ? "border-b border-[#F4F4F4]" : ""}`}
-                >
-                  <div className="font-medium px-[5px]">{invoice.date}</div>
-                  <div className="font-medium px-[5px]">{invoice.number}</div>
-                  <div className="font-semibold px-[5px]">{invoice.count}</div>
-                  <div className="font-semibold px-[5px]">{invoice.amount}</div>
-                  <div className="flex justify-center px-[5px]">
-                    <button className="p-2 bg-[#EEEEEA] w-[48px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-[#EEEEEA]/80 transition-colors cursor-pointer text-[#0D6363]">
-                      <RecieptIcon className="w-5 h-5" />
-                    </button>
+                <React.Fragment key={idx}>
+                  {/* Desktop View */}
+                  <div
+                    className={`hidden lg:grid bg-white rounded-[10px] mb-[6px] grid-cols-[1.5fr_1.5fr_1fr_1.5fr_1fr_1fr] px-[10px] xl:px-[15px] py-[13px] items-center text-[15px] leading-[120%] text-[#333333] font-noto-sans transition-colors hover:bg-[#f3f4f6]/50 ${idx !== MOCK_INVOICES.length - 1 ? "border-b border-[#F4F4F4]" : ""}`}
+                  >
+                    <div className="font-medium px-[5px]">{invoice.date}</div>
+                    <div className="font-medium px-[5px]">{invoice.number}</div>
+                    <div className="font-semibold px-[5px]">
+                      {invoice.count}
+                    </div>
+                    <div className="font-semibold px-[5px]">
+                      {invoice.amount}
+                    </div>
+                    <div className="flex justify-center px-[5px]">
+                      <button className="p-2 bg-[#EEEEEA] w-[48px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-[#EEEEEA]/80 transition-colors cursor-pointer text-[#0D6363]">
+                        <RecieptIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="flex justify-center px-[5px]">
+                      <button className="p-2 bg-[#0D6363] w-[48px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-[#0a4e4e] transition-colors cursor-pointer text-white">
+                        <Download className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex justify-center px-[5px]">
-                    <button className="p-2 bg-[#0D6363] w-[48px] h-[36px] flex items-center justify-center rounded-[8px] hover:bg-[#0a4e4e] transition-colors cursor-pointer text-white">
-                      <Download className="w-5 h-5" />
-                    </button>
+
+                  {/* Mobile/Tablet Card View */}
+                  <div className="lg:hidden bg-white rounded-[10px] p-4 mb-4 shadow-sm border border-[#F4F4F4] flex flex-col gap-4 font-noto-sans">
+                    <div className="flex justify-between items-start pb-3 border-b border-[#F4F4F4]">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[13px] text-[#888888] font-medium uppercase tracking-wider">
+                          Invoice Date
+                        </span>
+                        <span className="text-[15px] text-[#333333] font-semibold">
+                          {invoice.date}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1 text-right">
+                        <span className="text-[13px] text-[#888888] font-medium uppercase tracking-wider">
+                          Invoice Number
+                        </span>
+                        <span className="text-[15px] text-[#333333] font-semibold">
+                          {invoice.number}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center py-1">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[13px] text-[#888888] font-medium uppercase tracking-wider">
+                          Lead Count
+                        </span>
+                        <span className="text-[18px] text-[#0D6363] font-bold">
+                          {invoice.count}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1 text-right">
+                        <span className="text-[13px] text-[#888888] font-medium uppercase tracking-wider">
+                          Invoice Amount
+                        </span>
+                        <span className="text-[18px] text-[#0D6363] font-bold">
+                          {invoice.amount}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-row flex-col items-center gap-3 pt-2">
+                      <button className="w-full flex items-center justify-center gap-2 h-11 bg-[#EEEEEA] rounded-[10px] text-[#0D6363] hover:bg-[#EEEEEA]/80 transition-all font-semibold text-[14px] cursor-pointer">
+                        <RecieptIcon className="w-5 h-5" />
+                        View Receipt
+                      </button>
+                      <button className="w-full flex items-center justify-center gap-2 h-11 bg-[#0D6363] rounded-[10px] text-white hover:bg-[#0a4e4e] transition-all font-semibold text-[14px] cursor-pointer">
+                        <Download className="w-5 h-5" />
+                        Download CSV
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </React.Fragment>
               ))}
             </div>
 
             {/* Pagination Footer */}
-            <div className="bg-[#EEEEEA] rounded-[20px] xl:px-[24px] lg:px-[20px] px-[15px] xl:py-[16px] py-[12px] flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="bg-[#EEEEEA] md:rounded-[20px] rounded-[10px] xl:px-[24px] lg:px-[20px] px-[15px] xl:py-[16px] py-[12px] flex flex-wrap sm:flex-row flex-col items-center justify-between">
+              <div className="flex flex-wrap items-center gap-4 mb-[15px] sm:mb-0 sm:w-auto w-full sm:justify-start justify-between">
                 <span className="font-noto-sans text-[14px] text-[#4E4F54]">
                   Leads per page:
                 </span>
@@ -124,7 +182,7 @@ export const AllLeads: React.FC = () => {
                 </Select>
               </div>
 
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-6 sm:w-auto w-full sm:justify-start justify-between">
                 <div className="flex items-center gap-4">
                   <Select defaultValue="2">
                     <SelectTrigger
@@ -159,7 +217,7 @@ export const AllLeads: React.FC = () => {
         </div>
 
         {/* Right Column - Sidebar */}
-        <div className="w-full lg:w-[380px] lg:sticky lg:top-[80px] flex flex-col gap-6 xl:pt-12 pt-10">
+        <div className="w-full lg:w-[380px] lg:sticky lg:top-[80px] flex flex-col gap-6 xl:pt-12 sm:pt-10 pt-6">
           <div
             className="bg-white rounded-[10px] xl:p-[22px] p-[15px] shadow-[0px_26px_20px_0px_#0000001A]
  flex flex-col group transition-shadow"

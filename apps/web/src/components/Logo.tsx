@@ -9,7 +9,7 @@ export const Logo: React.FC<{ className?: string }> = ({ className = "" }) => {
         alt="Sul Local Logo"
         width={150}
         height={55}
-        className="object-contain"
+        className="object-contain md:w-[150px] w-[120px] md:h-[55px] h-[40px]"
       />
       {/* <svg
         width="40"

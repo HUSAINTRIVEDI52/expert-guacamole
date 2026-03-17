@@ -36,6 +36,7 @@ interface LeadsMapProps {
   onZipsChange: (zips: string[]) => void;
   onCountiesChange: (counties: string[]) => void;
   onMapDataReady?: (zips: string[]) => void;
+  isMaximized?: boolean;
 }
 
 export function LeadsMap({
@@ -46,6 +47,7 @@ export function LeadsMap({
   onZipsChange,
   onCountiesChange,
   onMapDataReady,
+  isMaximized,
 }: LeadsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
@@ -250,6 +252,15 @@ export function LeadsMap({
     highlightedStateFips,
     map,
   ]);
+
+  // Handle map resize when maximized state changes
+  useEffect(() => {
+    if (map) {
+      setTimeout(() => {
+        map.resize();
+      }, 300); // Wait for transition
+    }
+  }, [isMaximized, map]);
 
   // Handle layer visibility based on selectionMode
   useEffect(() => {
@@ -743,7 +754,7 @@ export function LeadsMap({
   }
 
   return (
-    <div className="relative w-full h-full rounded-[16px] overflow-hidden border border-[#EEEEEA]">
+    <div className="relative w-full h-full md:rounded-[16px] rounded-[10px] overflow-hidden border border-[#EEEEEA]">
       <div
         ref={containerRef}
         className="w-full h-full min-h-[200px]"

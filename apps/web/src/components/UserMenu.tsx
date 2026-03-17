@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,40 +9,32 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
   onMenuToggle,
 }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const isFaqActive = pathname === "/faqs";
 
   return (
     <div className="flex items-center gap-4">
       {/* faqs */}
       <Link
         href="/faqs"
-        className="bg-[#F4F4F4] min-h-[40px] flex items-center gap-[8px] rounded-[40px] px-[16px] py-[5px] text-[15px] cursor-pointer transition-colors no-underline"
+        className={`hidden md:flex min-h-[40px] items-center gap-[8px] rounded-[40px] px-[16px] py-[5px] text-[15px] cursor-pointer transition-colors no-underline ${
+          isFaqActive
+            ? "bg-[#BDD8D9]/30 border border-[#0D6363]/10"
+            : "bg-[#F4F4F4] hover:bg-zinc-200"
+        }`}
       >
         <Image src="/Q-A-image.png" width={24} height={24} alt="faqs" />
-        <span className="text-[15px] font-medium text-[#333333] font-noto-sans">
+        <span
+          className={`text-[15px] font-medium font-noto-sans ${
+            isFaqActive ? "text-[#0D6363]" : "text-[#333333]"
+          }`}
+        >
           FAQ's
         </span>
       </Link>
 
-      {/* Language Selector */}
-      {/* <div className="bg-[#EEEEEA] flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm shadow-sm cursor-pointer transition-colors">
-        <Image src={'/flag-icon.svg'} className="" width={30} height={30} alt="flag-icon" />
-        <svg
-          className="h-4 w-4 text-zinc-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </div> */}
-
       {/* auth buttons */}
-      <div className="flex flex-wrap gap-2.5">
+      <div className="hidden md:flex flex-wrap gap-2.5">
         <button
           onClick={() => router.push("/login")}
           className="bg-[#fff] hover:bg-[#0D6363]/90 text-[#0D6363] hover:text-white border border-[#0D6363] px-[20px] py-[10px] rounded-lg text-[15px] font-semibold transition-all active:scale-95 font-noto-sans cursor-pointer"
@@ -58,7 +50,7 @@ export const UserMenu: React.FC<{ onMenuToggle: () => void }> = ({
       </div>
 
       {/* Profile Section */}
-      <div className="flex items-center min-h-[40px] gap-2 rounded-[40px] bg-[#F4F4F4] pl-[16px] pr-[12px] py-[5px]  transition-colors">
+      <div className="hidden md:flex items-center min-h-[40px] gap-2 rounded-[40px] bg-[#F4F4F4] pl-[16px] pr-[12px] py-[5px]  transition-colors">
         <span className="text-[15px] font-medium text-[#333333] font-noto-sans capitalize">
           John Doe
         </span>

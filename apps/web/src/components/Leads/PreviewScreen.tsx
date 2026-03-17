@@ -151,7 +151,7 @@ export const PreviewScreen: React.FC = () => {
       </div>
 
       {/* Summary Header */}
-      <div className="bg-white rounded-[20px] border border-[#F4F4F4] shadow-sm px-[24px] py-[14px] mb-6 flex flex-wrap items-center justify-between gap-8">
+      <div className="bg-white md:rounded-[20px] rounded-[10px] border border-[#F4F4F4] shadow-sm xl:px-[24px] lg:px-[20px] px-[15px] py-[14px] mb-6 flex flex-wrap items-center justify-between xl:gap-8 lg:gap-6 gap-[15px]">
         <div className="flex flex-col">
           <span className="font-noto-sans text-[15px] font-medium text-[#333333] mb-1">
             Available Leads
@@ -159,12 +159,12 @@ export const PreviewScreen: React.FC = () => {
           <span className="text-[24px] font-semibold text-[#0D6363]">50K</span>
         </div>
 
-        <div className="flex items-center gap-[100px] ml-auto">
+        <div className="flex flex-wrap items-center 2xl:gap-[100px] xl:gap-[80px] lg:gap-[60px] md:gap-[40px] gap-[25px] ml-auto">
           <div className="flex flex-col">
             <span className="font-noto-sans text-[15px] font-medium text-[#333333] mb-1">
               Download Format
             </span>
-            <span className="text-[24px] font-semibold text-[#0D6363]">
+            <span className="xl:text-[24px] text-[20px] font-semibold text-[#0D6363]">
               .CSV
             </span>
           </div>
@@ -173,7 +173,7 @@ export const PreviewScreen: React.FC = () => {
             <span className="font-noto-sans text-[15px] font-medium text-[#333333] mb-1">
               Estimated Price
             </span>
-            <span className="text-[24px] font-semibold text-[#0D6363]">
+            <span className="xl:text-[24px] text-[20px] font-semibold text-[#0D6363]">
               $199.00
             </span>
           </div>
@@ -188,7 +188,7 @@ export const PreviewScreen: React.FC = () => {
       </div>
 
       {/* Main Table Container */}
-      <div className="xl:max-h-[540px] lg:max-h-[480px] max-h-[420px] relative bg-white rounded-[16px] border border-[#F4F4F4] shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="xl:max-h-[540px] lg:max-h-[480px] max-h-[420px] relative bg-white md:rounded-[16px] rounded-[10px] border border-[#F4F4F4] shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
         <div className="custom-scrollbar flex-1 overflow-y-hidden overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-white z-10 border-b border-[#F4F4F4]">

@@ -20,14 +20,14 @@ export function AuthVideoFaq({
       <div className="w-full space-y-4">
         {/* Top Part: Demo Video and FAQ */}
         <div className="">
-          <h3 className="text-[#333333] text-[18px] font-medium mb-[12px] font-noto-sans">
+          <h3 className="text-[#333333] text-[18px] leading-[140%] font-medium mb-[12px] font-noto-sans">
             Watch our demo video and read our FAQs for more information.
           </h3>
-          <div className="flex gap-[24px]">
+          <div className="flex 2xl:gap-[24px] xl:gap-[20px] lg:gap-[15px] gap-[10px]">
             {/* Video Thumbnail */}
             {!novideo && (
               <div
-                className="relative w-[184px] h-[104px] rounded-[12px] overflow-hidden bg-[#721516] group cursor-pointer"
+                className="relative md:w-[184px] w-full md:h-[104px] h-[180px] rounded-[12px] overflow-hidden bg-[#721516] group cursor-pointer"
                 onClick={() => setOpen(true)}
               >
                 <Image
@@ -51,7 +51,7 @@ export function AuthVideoFaq({
             )}
 
             {/* FAQ Card */}
-            <div className="relative w-[184px] h-[104px] rounded-[12px] overflow-hidden group cursor-pointer">
+            <div className="relative md:w-[184px] w-full md:h-[104px] sm:h-[250px] h-[200px] rounded-[12px] overflow-hidden group cursor-pointer">
               {/* image here */}
               <Image
                 src={"/faq-preview-image.png"}
@@ -67,7 +67,7 @@ export function AuthVideoFaq({
                     alt="faq icon"
                     width={32}
                     height={32}
-                    className="object-contain"
+                    className="object-contain md:w-[32px] w-[35px] md:h-[32px] h-[35px]"
                   />
                 </div>
               </div>

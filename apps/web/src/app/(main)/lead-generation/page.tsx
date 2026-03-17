@@ -240,7 +240,7 @@ function LeadGenerationContent() {
               />
 
               {/* Map Area */}
-              <div className="flex-1 w-full h-[calc(100vh-280px)] min-h-[500px] rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex-1 w-full h-[calc(100dvh-280px)] min-h-[500px] rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden dark:border-zinc-800 dark:bg-zinc-900">
                 <GeoSelector
                   onSelectionChange={handleGeoChange}
                   className="h-full w-full"

@@ -75,7 +75,7 @@ export const SocialLogin: React.FC = () => {
   }, [router]);
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full md:space-y-6 space-y-4">
       {error && (
         <div className="rounded-xl bg-red-50 p-4 text-[13px] font-medium text-red-600 border border-red-100">
           {error}
@@ -84,7 +84,7 @@ export const SocialLogin: React.FC = () => {
 
       <div className="relative flex items-center gap-4 py-2">
         <div className="flex-grow border-t border-[#EEEEEA]"></div>
-        <span className="text-[15px] text-[#888888] uppercase tracking-wider font-noto-sans">
+        <span className="md:text-[15px] text-[14px] text-[#888888] uppercase tracking-wider font-noto-sans">
           Or
         </span>
         <div className="flex-grow border-t border-[#EEEEEA]"></div>

@@ -16,9 +16,9 @@ export default function AuthLayout({
       {/* Left Side: Branded Panel (40% width) */}
       <div className="relative hidden w-[50%] flex-col lg:flex h-full z-20 shrink-0">
         {/* Top Green Section */}
-        <div className="relative flex-1 bg-[#096d59] w-full flex flex-col items-center pt-[50px] px-[80px] pb-[50px]">
+        <div className="relative flex-1 bg-[#096d59] w-full flex flex-col items-center 2xl:pt-[50px] 2xl:px-[80px] 2xl:pb-[50px] xl:pt-[40px] xl:px-[40px] xl:pb-[40px] lg:pt-[30px] lg:px-[30px] lg:pb-[30px] md:pt-[20px] md:px-[20px] md:pb-[20px] pt-[10px] px-[10px] pb-[10px]">
           {/* Logo on the Top Left */}
-          <div className="text-white mb-[58px] w-full">
+          <div className="text-white 2xl:mb-[58px] xl:mb-[40px] lg:mb-[35px] md:mb-[30px] mb-[25px] w-full">
             {/* Note: Invert filter creates white logo from standard logo-full.png */}
             <Image
               src="/logo-full.png"
@@ -27,7 +27,7 @@ export default function AuthLayout({
               height={50}
               className="object-contain invert brightness-0"
             />
-            <p className="text-white text-[18px] mt-2 font-medium tracking-wide font-noto-sans">
+            <p className="text-white 2xl:text-[18px] xl:text-[16px] text-[14px] mt-2 font-medium tracking-wide font-noto-sans">
               Quality Leads for Professionals.
             </p>
           </div>
@@ -43,7 +43,7 @@ export default function AuthLayout({
             />
             {/* Yellow Blurry Overlay Box */}
             <div className="absolute left-1/2 -translate-x-1/2 bottom-[25px] w-[90%] mx-auto bg-gradient-to-r from-[#fff]/20 to-[#fff]/20 backdrop-blur-[45px] rounded-[20px] p-[20px] z-20">
-              <p className="text-white font-lora font-semibold text-[24px] 2xl:text-[30px] leading-[120%] text-center">
+              <p className="text-white font-lora font-semibold 2xl:text-[24px] xl:text-[22px] md:text-[20px] text-[18px] leading-[120%] text-center">
                 Stop renting leads from tech platforms. Own better leads, pay
                 less, and grow your business your way.
               </p>
@@ -51,7 +51,7 @@ export default function AuthLayout({
           </div>
         </div>
 
-        <div className="w-full bg-[#EAECEF] px-[80px] py-[35px] flex flex-col justify-center">
+        <div className="w-full bg-[#EAECEF] 2xl:px-[80px] 2xl:py-[35px] xl:px-[40px] xl:py-[30px] lg:px-[30px] lg:py-[25px] md:px-[20px] md:py-[20px] px-[10px] py-[15px] flex flex-col justify-center">
           {/* Gray Info Section (Video, FAQ, Chat) */}
           <AuthVideoFaq className="mb-[28px]" />
 
@@ -89,7 +89,7 @@ export default function AuthLayout({
       {/* Right Side: Auth Forms (60% width, Pure White background) */}
       <div className="flex h-full w-full flex-col bg-white lg:w-[60%] overflow-y-auto scrollbar-hide">
         {/* Mobile Header */}
-        <div className="flex items-center p-6 lg:hidden">
+        <div className="flex items-center px-4 md:px-6 pt-4 pb-0 md:pt-6 md:pb-6 lg:hidden">
           <Image
             src="/logo-full.png"
             alt="Sul Local Logo"
@@ -106,7 +106,7 @@ export default function AuthLayout({
 
         <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
           {/* Form Card - Height-optimized padding and margins to prevent scrolling */}
-          <div className="w-full max-w-[650px] bg-white p-6 sm:p-10 lg:p-16 xl:p-20 z-10 my-4 lg:my-0">
+          <div className="w-full max-w-[650px] bg-white px-0 sm:px-8 lg:px-10 xl:px-20 py-0 sm:py-6 lg:py-8 xl:py-12 z-10 my-4 lg:my-0">
             {children}
           </div>
         </div>

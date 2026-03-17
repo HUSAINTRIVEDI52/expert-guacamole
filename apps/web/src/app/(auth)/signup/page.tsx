@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SocialLogin } from "@/components/auth/SocialLogin";
+import { Input } from "@/components/ui/input";
 import { signupAction } from "../actions";
 
 export default function SignupPage() {
@@ -15,6 +16,15 @@ export default function SignupPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
     const result = await signupAction(formData);
 
     if (result?.error) {
@@ -24,12 +34,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="md:space-y-8 space-y-6">
       <div className="space-y-1">
-        <h1 className="text-[40px] leading-[110%] font-semibold tracking-[0.2px] text-[#0D6363] mb-[8px] font-lora">
+        <h1 className="xl:text-[40px] lg:text-[34px] text-[30px] leading-[110%] font-semibold tracking-[0.2px] text-[#0D6363] mb-[8px] font-lora">
           Welcome to SUL Local
         </h1>
-        <p className="text-[15px] text-[#333333] leading-[130%] font-noto-sans">
+        <p className="xl:text-[15px] text-[14px] text-[#333333] leading-[130%] font-noto-sans">
           Create your free account and run list criteria before purchasing any
           leads.
         </p>
@@ -41,37 +51,25 @@ export default function SignupPage() {
             {error}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:gap-4 gap-2.5">
           <div className="space-y-1.5">
-            {/* <label
-              htmlFor="first-name"
-              className="text-[13px] font-semibold text-zinc-700 ml-1"
-            >
-              First Name
-            </label> */}
-            <input
+            <Input
               id="first-name"
               name="firstName"
               type="text"
               placeholder="First Name"
-              className="flex font-noto-sans h-11 w-full rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 text-[14px] ring-offset-white transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-zinc-300 shadow-sm"
+              className="font-noto-sans h-11 rounded-xl border-none bg-[#F4F4F4] px-4 text-[14px] transition-all placeholder:text-zinc-400 shadow-sm ring-0! ring-offset-0!"
               required
               disabled={isLoading}
             />
           </div>
           <div className="space-y-1.5">
-            {/* <label
-              htmlFor="last-name"
-              className="text-[13px] font-semibold text-zinc-700 ml-1"
-            >
-              Last Name
-            </label> */}
-            <input
+            <Input
               id="last-name"
               name="lastName"
               type="text"
               placeholder="Last Name"
-              className="flex font-noto-sans h-11 w-full rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 text-[14px] ring-offset-white transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-zinc-300 shadow-sm"
+              className="font-noto-sans h-11 rounded-xl border-none bg-[#F4F4F4] px-4 text-[14px] transition-all placeholder:text-zinc-400 shadow-sm ring-0! ring-offset-0!"
               required
               disabled={isLoading}
             />
@@ -79,54 +77,36 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-1.5">
-          {/* <label
-            htmlFor="email"
-            className="text-[13px] font-semibold text-zinc-700 ml-1"
-          >
-            Email Address
-          </label> */}
-          <input
+          <Input
             id="email"
             name="email"
             type="email"
             placeholder="Email Address"
-            className="flex font-noto-sans h-11 w-full rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 text-[14px] ring-offset-white transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-zinc-300 shadow-sm"
+            className="font-noto-sans h-11 rounded-xl border-none bg-[#F4F4F4] px-4 text-[14px] transition-all placeholder:text-zinc-400 shadow-sm ring-0! ring-offset-0!"
             required
             disabled={isLoading}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:gap-4 gap-2.5">
           <div className="space-y-1.5">
-            {/* <label
-            htmlFor="password"
-            className="text-[13px] font-semibold text-zinc-700 ml-1"
-          >
-            Password
-          </label> */}
-            <input
+            <Input
               id="password"
               name="password"
               type="password"
               placeholder="Password"
-              className="flex font-noto-sans h-11 w-full rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 text-[15px] ring-offset-white transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-zinc-300 shadow-sm"
+              className="font-noto-sans h-11 rounded-xl border-none bg-[#F4F4F4] px-4 text-[15px] transition-all placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm ring-0! ring-offset-0!"
               required
               disabled={isLoading}
             />
           </div>
           <div className="space-y-1.5">
-            {/* <label
-            htmlFor="password"
-            className="text-[13px] font-semibold text-zinc-700 ml-1"
-          >
-            Password
-          </label> */}
-            <input
-              id="password"
-              name="password"
+            <Input
+              id="confirm-password"
+              name="confirmPassword"
               type="password"
               placeholder="Confirm Password"
-              className="flex font-noto-sans h-11 w-full rounded-xl border border-[#EEEEEA] bg-[#F4F4F4] px-4 text-[15px] ring-offset-white transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-zinc-300 shadow-sm"
+              className="font-noto-sans h-11 rounded-xl border-none bg-[#F4F4F4] px-4 text-[15px] transition-all placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm ring-0! ring-offset-0!"
               required
               disabled={isLoading}
             />
@@ -156,7 +136,7 @@ export default function SignupPage() {
         </Link>
       </div>
 
-      <div className="px-[16px] py-[10px] bg-[#F4F4F4] rounded-[10px] text-[13px] text-[#888888] font-noto-sans mt-[50px]">
+      <div className="px-[16px] py-[10px] bg-[#F4F4F4] rounded-[10px] text-[13px] text-[#888888] font-noto-sans xl:mt-[50px] lg:mt-[40px] md:mt-[30px] mt-[20px]">
         By signing in or creating an account, you agree with our{" "}
         <Link href={"/"} className="underline text-[#333333] font-medium">
           {" "}

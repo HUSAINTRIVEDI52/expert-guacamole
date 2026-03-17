@@ -85,13 +85,13 @@ export function OnboardingDialog({ open, onComplete }: OnboardingDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-[470px] w-full rounded-[16px] bg-white p-[32px] shadow-2xl border-0 [&>button]:hidden p-[24px]">
+      <DialogContent className="max-w-[470px] w-[95%] rounded-[16px] bg-white  shadow-2xl border-0 [&>button]:hidden md:px-[24px] px-[15px] py-[24px]">
         {/* Title */}
         <div className="text-center mb-[15px]">
-          <DialogTitle className="font-lora font-semibold text-[30px] text-[#0D6363] leading-[110%] mb-[10px]">
+          <DialogTitle className="font-lora font-semibold md:text-[30px] text-[24px] text-[#0D6363] leading-[110%] mb-[10px]">
             Welcome to SUL Local
           </DialogTitle>
-          <DialogDescription className="text-[#333333] text-[15px] font-noto-sans leading-[120%]">
+          <DialogDescription className="text-[#333333] md:text-[15px] text-[14px] font-noto-sans leading-[120%]">
             Tell us a bit about your work so we can show you more
             <br />
             relevant leads, insights, and recommendations.

@@ -34,7 +34,7 @@ export const MainHomePage: React.FC = () => {
 
   return (
     <div
-      className="relative flex flex-col h-[calc(100vh-110px)] overflow-auto bg-cover bg-center bg-no-repeat"
+      className="relative flex flex-col lg:h-[calc(100dvh-110px)] md:h-[calc(100dvh-90px)] h-[calc(100dvh-70px)] overflow-auto bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/main-home-page-bg.png')" }}
     >
       {/* Onboarding Dialog */}
@@ -44,10 +44,10 @@ export const MainHomePage: React.FC = () => {
       />
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl w-full mx-auto px-[15px] xl:pt-[100px] lg:pt-[80px] pt-[60px] pb-[50px]">
+      <div className="relative z-10 max-w-7xl w-full mx-auto px-[15px] xl:pt-[100px] lg:pt-[80px] md:pt-[60px] pt-[40px] md:pb-[50px] pb-[40px] xl:px-[80px] lg:px-[40px] px-[20px]">
         {/* Heading */}
         <div className="mb-[30px]">
-          <h1 className="mb-[10px] text-white font-noto-sans font-bold xl:text-[46px] lg:text-[42px] text-[38px] leading-[110%]">
+          <h1 className="mb-[10px] text-white font-noto-sans font-bold 2xl:text-[46px] xl:text-[38px] lg:text-[34px] md:text-[30px] text-[26px] leading-[110%]">
             Search and explore leads to grow your business
           </h1>
           <h2 className="xl:text-[20px] lg:text-[18px] text-[16px] leading-[110%] font-noto-sans font-medium text-white/80">
@@ -56,7 +56,7 @@ export const MainHomePage: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="xl:mb-[70px] lg:mb-[60px] mb-[50px]">
+        <div className="xl:mb-[70px] lg:mb-[60px] md:mb-[40px] mb-[20px]">
           <LeadSearchBar onSearch={handleSearch} />
         </div>
 

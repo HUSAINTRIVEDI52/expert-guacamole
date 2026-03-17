@@ -254,7 +254,7 @@ function FilterSection({
 // ── Tag ───────────────────────────────────────────────────────────
 function Tag({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1.5 border border-[#0D6363]/8 rounded-full bg-[#BDD8D9] text-[#0D6363] text-[13px] font-noto-sans px-[14px] py-[6px]">
+    <span className="inline-flex items-center gap-1.5 border border-[#0D6363]/8 rounded-full bg-[#BDD8D9] text-[#0D6363] text-[13px] font-noto-sans px-[12px] py-[5px]">
       {label}
       <button
         onClick={onRemove}

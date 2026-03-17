@@ -73,14 +73,14 @@ export function LeadSearchBar({ onSearch }: LeadSearchBarProps) {
   );
 
   return (
-    <div className="w-full bg-[#EEEEEA]/50 backdrop-blur-md rounded-[20px] p-3 shadow-xl">
-      <div className="flex flex-col sm:flex-row gap-[12px] items-stretch sm:items-center bg-white xl:min-h-[160px] lg:min-h-[150px] min-h-[130px] xl:px-[48px] lg:px-[40px] px-[32px] xl:py-[24px] lg:py-[22px] py-[20px] rounded-[20px]">
+    <div className="w-full bg-[#EEEEEA]/50 backdrop-blur-md rounded-[20px] md:p-3 p-0 shadow-xl">
+      <div className="flex flex-col sm:flex-row gap-[12px] items-stretch sm:items-center bg-white xl:min-h-[160px] lg:min-h-[150px] min-h-[120px] xl:px-[48px] lg:px-[40px] md:px-[36px] sm:px-[25px] px-[15px] xl:py-[24px] lg:py-[22px] py-[20px] rounded-[20px]">
         {/* Location Select (State) */}
         <div className="flex-1 relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#0D6363] z-10 pointer-events-none" />
           <Select onValueChange={setSelectedState}>
             <SelectTrigger
-              className="pl-10 bg-[#F4F4F4] border-0 shadow-sm h-16 text-[18px] rounded-[12px] font-noto-sans ring-0! ring-offset-0! cursor-pointer"
+              className="pl-10 bg-[#F4F4F4] border-0 shadow-sm md:h-16 h-12 md:text-[18px] text-[15px] rounded-[12px] font-noto-sans ring-0! ring-offset-0! cursor-pointer"
               arrow={false}
             >
               <SelectValue
@@ -102,7 +102,7 @@ export function LeadSearchBar({ onSearch }: LeadSearchBarProps) {
         <button
           onClick={() => onSearch(selectedState || "")}
           disabled={!selectedState}
-          className="min-w-[200px] bg-[#F7B200] hover:bg-[#F7B200]/90 disabled:bg-[#F7B200]/50 disabled:cursor-not-allowed active:scale-95 text-[#333333] font-noto-sans font-medium text-[15px] px-8 h-16 rounded-[12px] transition-all uppercase cursor-pointer"
+          className="min-w-[200px] bg-[#F7B200] hover:bg-[#F7B200]/90 disabled:bg-[#F7B200]/50 disabled:cursor-not-allowed active:scale-95 text-[#333333] font-noto-sans font-medium text-[15px] px-8 md:h-16 h-12 rounded-[12px] transition-all uppercase cursor-pointer"
         >
           FIND LEADS
         </button>

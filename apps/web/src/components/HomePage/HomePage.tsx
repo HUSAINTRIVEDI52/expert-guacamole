@@ -16,14 +16,14 @@ export const HomePage: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-110px)]">
-      <div className="max-w-[1630px] mx-auto px-[15px] py-[80px] h-full overflow-auto">
-        <div className="flex flex-wrap items-center gap-[70px]">
-          <div className="w-[55%] flex-1">
-            <h1 className="font-lora font-bold text-[64px] leading-[110%] text-[#0D6363] mb-[16px]">
+    <div className="flex flex-col lg:h-[calc(100dvh-110px)] md:h-[calc(100dvh-90px)] h-[calc(100dvh-70px)]">
+      <div className="px-[15px] 2xl:py-[80px] xl:py-[60px] lg:py-[50px] md:py-[50px] py-[40px] h-full overflow-auto xl:px-[80px] lg:px-[40px] px-[20px]">
+        <div className="flex flex-wrap items-center xl:gap-[70px] lg:gap-[50px] md:gap-[40px] gap-[20px]">
+          <div className="md:w-[55%] w-full flex-1">
+            <h1 className="font-lora font-bold 2xl:text-[64px] xl:text-[52px] lg:text-[48px] md:text-[40px] sm:text-[32px] text-[28px] leading-[110%] text-[#0D6363] mb-[16px]">
               Data-Driven Leads Tailored to Your Services
             </h1>
-            <p className="text-[#888888] text-[15px] leading-[120%] font-noto-sans mb-[22px]">
+            <p className="text-[#888888] text-[15px] leading-[140%] font-noto-sans mb-[22px]">
               We provide leads for professionals to grow their businesses the
               old-school, tried-and-true way: by trusting themselves over
               technology automation. No one is better than you at growing and
@@ -31,16 +31,16 @@ export const HomePage: React.FC = () => {
               otherwise.
             </p>
 
-            <div className="mb-[65px]">
+            <div className="lg:mb-[65px] md:mb-[50px] mb-[40px]">
               <div className="flex flex-wrap items-center mb-[30px]">
-                <h3 className="text-[24px] font-medium font-noto-sans text-[#333333] mr-[10px]">
+                <h3 className="lg:text-[24px] md:text-[22px] text-[20px] font-medium font-noto-sans text-[#333333] mr-[10px]">
                   Why us versus
                 </h3>
                 {/* competitor name slider */}
                 <TextSlider
                   items={COMPETITORS}
                   interval={2000}
-                  className="text-[24px]"
+                  className="lg:text-[24px] md:text-[22px] text-[20px]"
                 />
               </div>
               <button className="bg-[#0D6363] hover:bg-[#0D6363]/90 text-white px-[20px] py-[11px] rounded-lg text-[15px] font-semibold transition-all active:scale-95 font-noto-sans cursor-pointer capitalize">
@@ -52,7 +52,7 @@ export const HomePage: React.FC = () => {
               <AuthVideoFaq className="bg-[transparent] px-0!" novideo={true} />
             </div>
           </div>
-          <div className="w-[45%] flex flex-col rounded-[20px] overflow-hidden">
+          <div className="md:w-[45%] w-full flex flex-col rounded-[12px] overflow-hidden">
             <div
               className="relative aspect-16/9 rounded-[12px] overflow-hidden bg-[#721516] group cursor-pointer"
               onClick={() => setOpen(true)}
@@ -64,9 +64,9 @@ export const HomePage: React.FC = () => {
                 className="object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 transition-colors">
-                <div className="w-[71px] h-[49px] flex items-center justify-center rounded-[8px] bg-[#E12929] shadow-md group-hover:scale-110 transition-transform">
+                <div className="xl:w-[71px] xl:h-[49px] lg:w-[60px] lg:h-[40px] md:w-[50px] md:h-[35px] w-[45px] h-[35px] flex items-center justify-center rounded-[8px] bg-[#E12929] shadow-md group-hover:scale-110 transition-transform">
                   <svg
-                    className="w-9 h-9 text-white"
+                    className="xl:w-9 xl:h-9 lg:w-8 lg:h-8 md:w-7 md:h-7 w-6 h-6 text-white"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -78,7 +78,7 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="">
+      <div>
         <AuthMarquee />
       </div>
 
