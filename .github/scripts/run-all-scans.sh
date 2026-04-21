@@ -434,24 +434,55 @@ if true; then
     done
   fi
 
-  if [ "${HAS_START}" = "yes" ]; then
-    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run start"
-    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run start) </dev/null > /tmp/ci-app.log 2>&1 &
-    APP_PID=$!
-  elif [ "${HAS_DEV}" = "yes" ]; then
-    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run dev"
-    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run dev) </dev/null > /tmp/ci-app.log 2>&1 &
-    APP_PID=$!
-  else
-    warn "No 'start' or 'dev' script found — skipping Newman and ZAP"
+  # ── Smart start: read package.json scripts and pick the best one ────────────
+  # Priority: dev > start:dev > start:local > serve > start (with build if Next.js)
+  CHOSEN_SCRIPT=""
+  NEEDS_BUILD=false
+
+  SCRIPTS_JSON=$(node -e "
+    try {
+      const p = require('${APP_START_DIR}/package.json');
+      const s = p.scripts || {};
+      const priority = ['dev','start:dev','start:local','start:ci','serve','start'];
+      for (const k of priority) {
+        if (s[k]) { process.stdout.write(k); break; }
+      }
+    } catch(e) {}
+  " 2>/dev/null)
+
+  CHOSEN_SCRIPT="${SCRIPTS_JSON}"
+
+  if [ -z "${CHOSEN_SCRIPT}" ]; then
+    warn "No runnable script found in ${APP_START_DIR}/package.json — skipping Newman and ZAP"
     NEWMAN_RESULT="skipped (no start script)"
     ZAP_RESULT="skipped"
+  else
+    log "Selected start script: '${CHOSEN_SCRIPT}' from ${APP_START_DIR}/package.json"
+
+    # If chosen script is 'start' and this is a Next.js app, run build first
+    IS_NEXTJS=false
+    for CFG in next.config.js next.config.ts next.config.mjs next.config.cjs; do
+      [ -f "${APP_START_DIR}/${CFG}" ] && IS_NEXTJS=true && break
+    done
+
+    if [ "${CHOSEN_SCRIPT}" = "start" ] && [ "${IS_NEXTJS}" = "true" ]; then
+      log "Next.js detected with 'start' script — running 'next build' first..."
+      if timeout 300 (cd "${APP_START_DIR}" && ${PKG_MANAGER} run build) 2>&1; then
+        ok "Next.js build completed"
+      else
+        warn "Next.js build failed — ZAP scan may not work correctly"
+      fi
+    fi
+
+    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run ${CHOSEN_SCRIPT}"
+    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run ${CHOSEN_SCRIPT}) </dev/null > /tmp/ci-app.log 2>&1 &
+    APP_PID=$!
   fi
 
   if [ -n "${APP_PID}" ]; then
-    log "Waiting up to 30s for app to be ready on http://localhost:3000..."
+    log "Waiting up to 90s for app to be ready on http://localhost:3000..."
     APP_READY=false
-    for i in $(seq 1 15); do
+    for i in $(seq 1 45); do
       if ! kill -0 ${APP_PID} 2>/dev/null; then
         warn "App process exited early. Logs:"
         cat /tmp/ci-app.log 2>/dev/null || true
