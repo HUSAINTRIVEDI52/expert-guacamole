@@ -1,305 +1,720 @@
-#!/bin/sh
+#!/bin/bash
+# =============================================================================
+# run-all-scans.sh
+# Scans: SonarQube SAST
+# Output: Imported to DefectDojo → final report as GitHub artifact
+# =============================================================================
 
-# run-ci-checks.sh - Compulsory DevOps CI Checks
-# Used by Husky pre-push
+set -euo pipefail
 
-echo ""
-echo "=================================================="
-echo "[CI Checks] Starting local CI pipeline"
-echo "=================================================="
+# ── Paths ────────────────────────────────────────────────────────────────────
+WORKSPACE="${HOME}/security-scan"
+APP_DIR="${WORKSPACE}/app"          # Scan entire repo root
+REPORTS_DIR="${WORKSPACE}/reports"
+LOG_FILE="${REPORTS_DIR}/scan.log"
 
-LOCAL=$(git rev-parse @ 2>/dev/null)
-REMOTE=$(git rev-parse @{u} 2>/dev/null)
+# ── State ────────────────────────────────────────────────────────────────────
+SONAR_RESULT="skipped"
+UNIT_RESULT="skipped"
+NEWMAN_RESULT="skipped"
+ZAP_RESULT="skipped"
+IMPORT_COUNT=0
+FINAL_FORMAT="none"
+DOJO_IMPORT_FAILED=false
 
-if [ -n "$REMOTE" ]; then
-  CHANGED=$(git diff --name-only "$REMOTE" "$LOCAL" 2>/dev/null)
-else
-  if git rev-parse HEAD~1 >/dev/null 2>&1; then
-    CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null)
-  else
-    EMPTY_TREE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-    CHANGED=$(git diff-tree --no-commit-id -r --name-only "$EMPTY_TREE" HEAD 2>/dev/null)
-    echo "[CI Checks] Initial push detected - scanning all committed files."
-  fi
-fi
+# ── Logging ──────────────────────────────────────────────────────────────────
+mkdir -p "${REPORTS_DIR}"
+exec > >(tee -a "${LOG_FILE}") 2>&1
 
-if [ -n "$CHANGED" ]; then
+log()  { echo "[$(date '+%H:%M:%S')] $*"; }
+ok()   { echo "[$(date '+%H:%M:%S')] ✓ $*"; }
+warn() { echo "[$(date '+%H:%M:%S')] ⚠ WARNING: $*"; }
+fail() { echo "[$(date '+%H:%M:%S')] ✗ ERROR: $*"; }
+banner_fail() {
   echo ""
-  echo "[CI Checks] Changed files detected:"
-  echo "$CHANGED" | sed "s/^/  -> /"
-else
-  echo "[CI Checks] No changed files detected (informational)."
-fi
-
-echo ""
-echo "[CI Checks] Starting compulsory checks..."
-
-find_project_dir() {
-  for DIR in . backend server api app src frontend; do
-    if [ -f "$DIR/package.json" ]; then
-      echo "$DIR"
-      return
-    fi
-  done
-  echo "none"
+  echo "################################################################"
+  echo "#                                                              #"
+  echo "#   ✗ ERROR: $1 FAILED   #"
+  echo "#                                                              #"
+  echo "################################################################"
+  echo ""
 }
 
-PROJECT_DIR=$(find_project_dir)
+# ─────────────────────────────────────────────────────────────────────────────
+# BANNER + VALIDATION
+# ─────────────────────────────────────────────────────────────────────────────
+log "======================================================="
+log " Security Scan — Pipeline"
+log " SHA:    ${GIT_SHA:0:8}"
+log " Branch: ${GIT_BRANCH}"
+log " Date:   ${RUN_DATE}"
+log "======================================================="
 
-if [ "$PROJECT_DIR" = "none" ]; then
-  echo "[CI Checks] No package.json found. Cannot run Node checks."
-  exit 0
+REQUIRED=(
+  GIT_SHA GIT_BRANCH RUN_DATE
+  SONAR_HOST_URL SONAR_TOKEN
+  DEFECTDOJO_URL DEFECTDOJO_API_KEY
+  DEFECTDOJO_ENGAGEMENT_ID DEFECTDOJO_PRODUCT_ID
+)
+MISSING=()
+for var in "${REQUIRED[@]}"; do
+  [ -z "${!var:-}" ] && MISSING+=("$var")
+done
+if [ ${#MISSING[@]} -gt 0 ]; then
+  fail "Missing required variables: ${MISSING[*]}"
+  exit 1
+fi
+ok "All required env vars present"
+
+# ── Clean Secrets (Strip Newlines & Whitespace) ──────────────────────────────
+log "Trimming whitespace and newlines from secrets..."
+SONAR_TOKEN=$(echo "${SONAR_TOKEN}" | tr -d '\r\n ')
+SONAR_HOST_URL=$(echo "${SONAR_HOST_URL}" | tr -d '\r\n ')
+DEFECTDOJO_URL=$(echo "${DEFECTDOJO_URL}" | tr -d '\r\n ')
+DEFECTDOJO_API_KEY=$(echo "${DEFECTDOJO_API_KEY}" | tr -d '\r\n ')
+DEFECTDOJO_ENGAGEMENT_ID=$(echo "${DEFECTDOJO_ENGAGEMENT_ID}" | tr -d '\r\n ')
+DEFECTDOJO_PRODUCT_ID=$(echo "${DEFECTDOJO_PRODUCT_ID}" | tr -d '\r\n ')
+
+# ── Normalize URLs ───────────────────────────────────────────────────────────
+if [[ ! "${SONAR_HOST_URL}" =~ ^https?:// ]]; then
+  log "Normalizing SONAR_HOST_URL to include http://"
+  SONAR_HOST_URL="http://${SONAR_HOST_URL}"
 fi
 
-echo "[CI Checks] Node project detected in: $PROJECT_DIR"
-cd "$PROJECT_DIR" || exit 0
-
-PKG_MANAGER="npm"
-if [ -f "pnpm-lock.yaml" ]; then
-  PKG_MANAGER="pnpm"
-elif [ -f "yarn.lock" ]; then
-  PKG_MANAGER="yarn"
-elif [ -f "bun.lockb" ]; then
-  PKG_MANAGER="bun"
+if [[ ! "${DEFECTDOJO_URL}" =~ ^https?:// ]]; then
+  log "Normalizing DEFECTDOJO_URL to include http://"
+  DEFECTDOJO_URL="http://${DEFECTDOJO_URL}"
 fi
 
-RUN_CMD="$PKG_MANAGER run"
-if [ "$PKG_MANAGER" = "yarn" ]; then
-  RUN_CMD="yarn"
-fi
+# ── Check environment ────────────────────────────────────────────────────────
+command -v docker &>/dev/null || { fail "Docker not found"; exit 1; }
+ok "Docker: $(docker --version | cut -d' ' -f3 | tr -d ',')"
 
-install_dev_dependencies() {
-  if [ "$PKG_MANAGER" = "pnpm" ]; then
-    pnpm add -D "$@"
-  elif [ "$PKG_MANAGER" = "yarn" ]; then
-    yarn add -D "$@"
-  elif [ "$PKG_MANAGER" = "bun" ]; then
-    bun add -d "$@"
-  else
-    npm install --save-dev --legacy-peer-deps "$@"
+# ── Verify APP_DIR exists ────────────────────────────────────────────────────
+if [ ! -d "${APP_DIR}" ]; then
+  fail "APP_DIR not found: ${APP_DIR}"
+  exit 1
+fi
+ok "Scanning directory: ${APP_DIR}"
+log "Contents of scan root:"
+ls -la "${APP_DIR}" | head -30
+
+# ── Fix permissions upfront ──────────────────────────────────────────────────
+chmod -R 777 "${REPORTS_DIR}" 2>/dev/null || true
+ok "Permissions set on reports directory"
+
+# ── Check DefectDojo ─────────────────────────────────────────────────────────
+log "Checking DefectDojo at ${DEFECTDOJO_URL} ..."
+DOJO_OK=false
+for attempt in 1 2 3; do
+  DOJO_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+    --connect-timeout 15 --max-time 20 \
+    "${DEFECTDOJO_URL}" 2>/dev/null || echo "000")
+  if [ "${DOJO_HTTP}" != "000" ]; then
+    ok "DefectDojo reachable (HTTP ${DOJO_HTTP})"
+    DOJO_OK=true
+    break
   fi
-}
+  warn "DefectDojo attempt ${attempt}/3 failed — retrying in 15s..."
+  sleep 15
+done
+if [ "${DOJO_OK}" = "false" ]; then
+  fail "DefectDojo not reachable at ${DEFECTDOJO_URL}"
+  exit 1
+fi
 
-echo "[CI Checks] Using package manager: $PKG_MANAGER"
+# ── Check SonarQube (soft) ───────────────────────────────────────────────────
+log "Checking SonarQube at ${SONAR_HOST_URL} ..."
+SONAR_REACHABLE=false
+for attempt in 1 2 3; do
+  SONAR_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+    --connect-timeout 15 --max-time 20 \
+    "${SONAR_HOST_URL}" 2>/dev/null || echo "000")
+  if [ "${SONAR_HTTP}" != "000" ]; then
+    ok "SonarQube reachable (HTTP ${SONAR_HTTP})"
+    SONAR_REACHABLE=true
+    break
+  fi
+  warn "SonarQube attempt ${attempt}/3 — retrying in 15s..."
+  sleep 15
+done
+[ "${SONAR_REACHABLE}" = "false" ] && \
+  warn "SonarQube not reachable — SAST skipped"
 
-HAS_START=$(node -e "try{const p=require('./package.json');console.log(p.scripts&&p.scripts.start?'yes':'no')}catch(e){console.log('no')}" 2>/dev/null)
-HAS_DEV=$(node -e "try{const p=require('./package.json');console.log(p.scripts&&p.scripts.dev?'yes':'no')}catch(e){console.log('no')}" 2>/dev/null)
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 1 — SonarQube Project Setup & SAST
+# ─────────────────────────────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 1: SonarQube Project Setup & SAST"
+log "-------------------------------------------------------"
 
-echo ""
-echo "=================================================="
-echo "[Smoke Tests] Checking for smoke test script..."
-echo "=================================================="
+if [ "${SONAR_REACHABLE}" = "true" ]; then
+  cd "${APP_DIR}"
 
-HAS_SMOKE=$(node -e "try{const p=require('./package.json');console.log(p.scripts&&p.scripts['test:smoke']?'yes':'no')}catch(e){console.log('no')}" 2>/dev/null)
+  log "Determining SonarQube project identity..."
+  PKG_JSON=""
+  if [ -f "package.json" ]; then
+    PKG_JSON="package.json"
+  elif [ -n "$(find . -maxdepth 2 -name "package.json" ! -path "*/node_modules/*" | head -1)" ]; then
+    PKG_JSON=$(find . -maxdepth 2 -name "package.json" ! -path "*/node_modules/*" | head -1)
+  fi
 
-TEST_FILES=$(find . \
-  -not -path "*/node_modules/*" -not -path "*/.git/*" \
-  \( \
-    -name "*.test.js" -o -name "*.spec.js" -o \
-    -name "*.test.ts" -o -name "*.spec.ts" -o \
-    -name "*.test.tsx" -o -name "*.spec.tsx" -o \
-    -name "*.test.jsx" -o -name "*.spec.jsx" -o \
-    -name "*.test.mjs" -o -name "*.spec.mjs" -o \
-    \( \( -path "*/__tests__/*" -o -path "*/__test__/*" \) \( -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.mjs" \) \) \
-  \) 2>/dev/null)
+  if [ -n "${PKG_JSON}" ]; then
+    log "Found package.json at: ${PKG_JSON}"
+    PROJECT_NAME=$(grep -m 1 '"name":' "${PKG_JSON}" | cut -d'"' -f4 || echo "unknown-project")
+  else
+    warn "No package.json found — using repository name as project name"
+    PROJECT_NAME=$(basename "${APP_DIR}")
+  fi
+  
+  SONAR_PROJECT_KEY=$(echo "${PROJECT_NAME}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._:-]/-/g')
+  ok "Derived SonarQube project name: ${PROJECT_NAME}, key: ${SONAR_PROJECT_KEY}"
 
-if [ "$HAS_SMOKE" = "yes" ] && [ -n "$TEST_FILES" ]; then
-  echo "[Smoke Tests] Test script and test files detected. Running 'test:smoke'..."
-  SMOKE_OUTPUT=$($RUN_CMD test:smoke 2>&1)
-  SMOKE_EXIT=$?
+  # --- Skip Project Creation if Token lacks Admin rights (Graceful 401/403) ---
+  log "Checking if project '${SONAR_PROJECT_KEY}' exists in SonarQube..."
+  # Use curl with || true to prevent script from exiting on 401
+  PROJECT_SEARCH_RESP=$(curl -s -u "${SONAR_TOKEN}:" \
+    "${SONAR_HOST_URL}/api/projects/search?projects=${SONAR_PROJECT_KEY}" || echo "REACH_ERROR")
+  
+  PROJECT_EXISTS=$(echo "${PROJECT_SEARCH_RESP}" | grep -q "\"key\":\"${SONAR_PROJECT_KEY}\"" && echo "true" || echo "false")
 
-  if [ $SMOKE_EXIT -ne 0 ]; then
-    if echo "$SMOKE_OUTPUT" | grep -qiE "not recognized|not found|command not found|Cannot find module|ERR_MODULE_NOT_FOUND"; then
-      echo ""
-      echo "[Smoke Tests] Test runner not found. Auto-installing missing dependencies..."
-
-      SMOKE_SCRIPT=$(node -e "try{const p=require('./package.json');console.log(p.scripts['test:smoke']||'')}catch(e){console.log('')}" 2>/dev/null)
-
-      if echo "$SMOKE_SCRIPT" | grep -qi "vitest"; then
-        echo "[Smoke Tests] Installing vitest and @vitest/coverage-v8..."
-        install_dev_dependencies vitest @vitest/coverage-v8 >/dev/null 2>&1 || true
-      elif echo "$SMOKE_SCRIPT" | grep -qi "jest"; then
-        echo "[Smoke Tests] Installing jest..."
-        install_dev_dependencies jest >/dev/null 2>&1 || true
-      fi
-
-      echo "[Smoke Tests] Retrying smoke tests after auto-install..."
-      if ! $RUN_CMD test:smoke; then
-        echo "[Smoke Tests] Failed after auto-install. Push blocked."
-        exit 1
-      fi
-      echo "[Smoke Tests] Passed (after auto-install)"
-    elif echo "$SMOKE_OUTPUT" | grep -q "@vitest/coverage-v8"; then
-      echo ""
-      echo "[Smoke Tests] Missing '@vitest/coverage-v8'. Auto-installing..."
-      install_dev_dependencies @vitest/coverage-v8 >/dev/null 2>&1 || true
-
-      echo "[Smoke Tests] Retrying smoke tests after auto-install..."
-      if ! $RUN_CMD test:smoke; then
-        echo "[Smoke Tests] Failed after auto-install. Push blocked."
-        exit 1
-      fi
-      echo "[Smoke Tests] Passed (after auto-install)"
+  if [ "${PROJECT_EXISTS}" = "false" ] && [ "${PROJECT_SEARCH_RESP}" != "REACH_ERROR" ]; then
+    log "Project not found. Auto-creating '${SONAR_PROJECT_KEY}'..."
+    CREATE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      -u "${SONAR_TOKEN}:" -X POST \
+      "${SONAR_HOST_URL}/api/projects/create" \
+      -d "name=${PROJECT_NAME}" \
+      -d "project=${SONAR_PROJECT_KEY}" || echo "000")
+    
+    if [ "${CREATE_STATUS}" = "200" ] || [ "${CREATE_STATUS}" = "201" ]; then
+      ok "Project created successfully (HTTP ${CREATE_STATUS})"
     else
-      echo "$SMOKE_OUTPUT"
-      echo "[Smoke Tests] Failed. Push blocked."
-      exit 1
+      warn "Could not create project (HTTP ${CREATE_STATUS}) — likely missing Admin permissions. Proceeding with scan anyway..."
     fi
   else
-    echo "$SMOKE_OUTPUT"
-    echo "[Smoke Tests] Passed"
+    ok "Project '${SONAR_PROJECT_KEY}' existence confirmed or search skipped"
   fi
-elif [ -n "$TEST_FILES" ]; then
-  echo ""
-  echo "[Smoke Tests] WARNING: Test files found but no 'test:smoke' script in package.json."
-  echo "[Smoke Tests] Run 'npx cs-setup check-hooks' to auto-add it."
-  echo "[Smoke Tests] Skipping smoke tests - push will continue."
-  echo ""
+
+  SONAR_OK=false
+
+  log "Running SonarScanner via NPX to avoid Docker pulls..."
+  npx --yes sonar-scanner \
+    -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+    -Dsonar.projectName="${PROJECT_NAME}" \
+    -Dsonar.host.url="${SONAR_HOST_URL}" \
+    -Dsonar.token="${SONAR_TOKEN}" \
+    -Dsonar.sources=. \
+    -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/tests/**,**/seeds/**,**/scripts/**,**/.git/**" \
+    -Dsonar.sourceEncoding=UTF-8 \
+    2>&1 && SONAR_OK=true || SONAR_OK=false
+
+  if [ "${SONAR_OK}" = "true" ]; then
+    log "Waiting 30s for SonarQube to process analysis..."
+    sleep 30
+
+    log "Polling SonarQube background task..."
+    for i in $(seq 1 12); do
+      RAW_RESP=$(curl -s -u "${SONAR_TOKEN}:" \
+        "${SONAR_HOST_URL}/api/ce/component?component=${SONAR_PROJECT_KEY}")
+      STATUS=$(echo "${RAW_RESP}" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "")
+      if [ -z "${STATUS}" ]; then
+        STATUS="UNKNOWN"
+        log "  Raw API response: ${RAW_RESP}"
+      fi
+      log "  Task status: ${STATUS} (attempt ${i}/12)"
+      [ "${STATUS}" = "SUCCESS" ] && break
+      [ "${STATUS}" = "FAILED" ] && { warn "SonarQube background task FAILED"; break; }
+      sleep 10
+    done
+
+    QG_FAILED=false
+    if [ "${STATUS}" = "SUCCESS" ]; then
+      log "Checking SonarQube Quality Gate status..."
+      # Give Elasticsearch/Quality Gate engine a few seconds to finalize
+      sleep 5 
+      QG_RESP=$(curl -s -u "${SONAR_TOKEN}:" \
+        "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}")
+      QG_STATUS=$(echo "${QG_RESP}" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "UNKNOWN")
+      
+      if [ "${QG_STATUS}" = "OK" ]; then
+        ok "Quality Gate Passed (Status: ${QG_STATUS})"
+        SONAR_RESULT="passed"
+      else
+        warn "Quality Gate FAILED (Status: ${QG_STATUS})"
+        log "  Raw Quality Gate API Response: ${QG_RESP}"
+        SONAR_RESULT="failed (quality gate)"
+        QG_FAILED=true
+      fi
+    else
+      warn "SonarQube background task did not reach SUCCESS. Status: ${STATUS}"
+      SONAR_RESULT="failed (task incomplete)"
+    fi
+
+    curl -s \
+      -u "${SONAR_TOKEN}:" \
+      "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&resolved=false&ps=500" \
+      -o "${REPORTS_DIR}/sonarqube-report.json"
+    SIZE=$(wc -c < "${REPORTS_DIR}/sonarqube-report.json" 2>/dev/null || echo 0)
+
+    if [ "${SIZE}" -gt 500 ]; then
+      ok "SonarQube report saved (${SIZE} bytes)"
+      [ "${QG_FAILED}" != "true" ] && SONAR_RESULT="passed"
+    else
+      warn "SonarQube report too small (${SIZE} bytes) — likely empty or error"
+      warn "Raw: $(cat "${REPORTS_DIR}/sonarqube-report.json" 2>/dev/null || echo 'unreadable')"
+      SONAR_RESULT="partial"
+    fi
+  else
+    banner_fail "SONARQUBE SCAN"
+    SONAR_RESULT="failed"
+  fi
 else
-  echo ""
-  echo "[Smoke Tests] WARNING: No 'test:smoke' script and no test files found."
-  echo "[Smoke Tests] Skipping smoke tests - push will continue."
-  echo ""
+  warn "Skipping SonarQube — not reachable"
 fi
 
-echo ""
-echo "=================================================="
-echo "[Newman] Checking for API tests..."
-echo "=================================================="
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 2 — Unit Testing
+# ─────────────────────────────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 2: Unit Testing"
+log "-------------------------------------------------------"
+cd "${APP_DIR}"
 
+# ── Detect package manager ───────────────────────────────────────────────────
+PKG_MANAGER="npm"
+if [ -f "pnpm-lock.yaml" ]; then PKG_MANAGER="pnpm"
+elif [ -f "yarn.lock" ]; then PKG_MANAGER="yarn"
+elif [ -f "bun.lockb" ]; then PKG_MANAGER="bun"
+fi
+ok "Detected package manager: ${PKG_MANAGER}"
+
+# ── Ensure package manager is installed ─────────────────────────────────────
+if [ "${PKG_MANAGER}" = "pnpm" ] && ! command -v pnpm &>/dev/null; then
+  log "pnpm not found — installing via npm..."
+  npm install -g pnpm --silent
+  ok "pnpm installed: $(pnpm --version)"
+fi
+if [ "${PKG_MANAGER}" = "yarn" ] && ! command -v yarn &>/dev/null; then
+  log "yarn not found — installing via npm..."
+  npm install -g yarn --silent
+  ok "yarn installed: $(yarn --version)"
+fi
+
+# ── Install dependencies (with timeout + visible output on failure) ──────────
+log "Installing dependencies with ${PKG_MANAGER}..."
+INSTALL_OK=false
+
+# Detect monorepo (pnpm-workspace.yaml or workspaces in package.json)
+IS_MONOREPO=false
+if [ -f "pnpm-workspace.yaml" ] || [ -f "pnpm-workspace.yml" ]; then
+  IS_MONOREPO=true
+  log "Monorepo detected (pnpm workspace)"
+elif node -e "try{const p=require('./package.json');process.exit(p.workspaces?0:1)}catch(e){process.exit(1)}" 2>/dev/null; then
+  IS_MONOREPO=true
+  log "Monorepo detected (package.json workspaces)"
+fi
+
+case "${PKG_MANAGER}" in
+  pnpm)
+    if [ "${IS_MONOREPO}" = "true" ]; then
+      # In monorepo: install from root, ignore scripts to avoid hanging postinstalls
+      timeout 300 pnpm install --no-frozen-lockfile --ignore-scripts 2>&1 \
+        && INSTALL_OK=true \
+        || { warn "pnpm install failed"; INSTALL_OK=false; }
+    else
+      timeout 300 pnpm install --no-frozen-lockfile --ignore-scripts 2>&1 \
+        && INSTALL_OK=true \
+        || { warn "pnpm install failed"; INSTALL_OK=false; }
+    fi
+    ;;
+  yarn)
+    timeout 300 yarn install --frozen-lockfile --non-interactive --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || timeout 300 yarn install --non-interactive --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || { warn "yarn install failed"; INSTALL_OK=false; }
+    ;;
+  bun)
+    timeout 300 bun install --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || { warn "bun install failed"; INSTALL_OK=false; }
+    ;;
+  npm)
+    timeout 300 npm ci --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || timeout 300 npm install --no-audit --no-fund --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || { warn "npm install failed"; INSTALL_OK=false; }
+    ;;
+esac
+
+if [ "${INSTALL_OK}" = "true" ]; then
+  ok "Dependencies installed"
+else
+  warn "Dependency install failed — unit tests may fail or be skipped"
+fi
+
+# ── Detect test script ───────────────────────────────────────────────────────
+HAS_TEST_SMOKE=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test:smoke']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_TEST=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+
+# ── Run tests (with 10-min timeout to prevent hanging) ──────────────────────
+UNIT_RESULT="skipped"
+if [ "${HAS_TEST_SMOKE}" = "yes" ]; then
+  log "Running 'test:smoke' script..."
+  if timeout 600 ${PKG_MANAGER} run test:smoke 2>&1; then
+    ok "Smoke tests passed"
+    UNIT_RESULT="passed"
+  else
+    EXIT_CODE=$?
+    if [ ${EXIT_CODE} -eq 124 ]; then
+      warn "Tests timed out after 10 minutes"
+      UNIT_RESULT="timed out"
+    else
+      banner_fail "UNIT TESTS"
+      UNIT_RESULT="failed"
+    fi
+  fi
+elif [ "${HAS_TEST}" = "yes" ]; then
+  log "Running 'test' script..."
+  # Pass CI=true to prevent watch mode in Jest/Vitest
+  if timeout 600 env CI=true ${PKG_MANAGER} run test 2>&1; then
+    ok "Unit tests passed"
+    UNIT_RESULT="passed"
+  else
+    EXIT_CODE=$?
+    if [ ${EXIT_CODE} -eq 124 ]; then
+      warn "Tests timed out after 10 minutes"
+      UNIT_RESULT="timed out"
+    else
+      banner_fail "UNIT TESTS"
+      UNIT_RESULT="failed"
+    fi
+  fi
+else
+  warn "No 'test' or 'test:smoke' script found in package.json — skipping unit tests"
+  UNIT_RESULT="skipped (no script)"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 3 — API Integration Testing (Newman)
+# ─────────────────────────────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 3: API Integration Testing (Newman)"
+log "-------------------------------------------------------"
+cd "${APP_DIR}"
+
+# ── Detect start command ─────────────────────────────────────────────────────
+HAS_START=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['start']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_DEV=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['dev']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_NEWMAN=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test:newman']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+
+# Check if Postman collections exist
 COLLECTIONS=$(find . -not -path "*/node_modules/*" -not -path "*/.git/*" -name "*.postman_collection.json" 2>/dev/null)
 
-if [ -z "$COLLECTIONS" ]; then
-  echo ""
-  echo "[Newman] WARNING: No *.postman_collection.json file found."
-  echo "[Newman] Skipping Newman API tests and server start - push will continue."
-  echo ""
-else
-  echo "[Newman] Postman collections detected. Preparing server environment..."
+# ZAP always runs if app starts; Newman only runs if collections/keys present
+if true; then
+  # ── Start the app (monorepo-aware) ──────────────────────────────────────────
+  APP_PID=""
 
-  SERVER_PID=""
-  PORT=""
-  START_CMD=""
-  if [ "$HAS_START" = "yes" ]; then
-    START_CMD="$PKG_MANAGER start"
-  elif [ "$HAS_DEV" = "yes" ]; then
-    START_CMD="$RUN_CMD dev"
-  fi
-
-  if [ -n "$START_CMD" ]; then
-    DETECTED_PORT=""
-    if [ -f ".env" ]; then
-      DETECTED_PORT=$(grep -E "^PORT=" .env 2>/dev/null | cut -d= -f2 | tr -d "\t\r\n ")
-    fi
-    if [ -z "$DETECTED_PORT" ]; then
-      DETECTED_PORT=$(node -e 'try{const p=require("./package.json");const s=JSON.stringify(p.scripts||{});const m=s.match(/PORT=([0-9]+)/);if(m)process.stdout.write(m[1])}catch(e){}' 2>/dev/null)
-    fi
-    if [ -z "$DETECTED_PORT" ]; then
-      DETECTED_PORT=$(grep -rE "\.listen\([0-9]" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | grep -oE "[0-9]{4,5}" | head -1)
-    fi
-
-    KILL_PORT=${DETECTED_PORT:-3000}
-    echo "[Server] Auto-killing any process on port $KILL_PORT to avoid conflicts..."
-    node -e "
-      const net = require('net');
-      const s = net.createConnection({port:$KILL_PORT, host:'127.0.0.1'});
-      s.on('connect', () => { s.destroy(); process.exit(0); });
-      s.on('error', () => { process.exit(0); });
-      setTimeout(() => process.exit(0), 2000);
-    " 2>/dev/null || true
-    npx --yes kill-port $KILL_PORT >/dev/null 2>&1 || true
-
-    echo "[Server] Starting server with: $START_CMD"
-    $START_CMD </dev/null > /tmp/ci-server.log 2>&1 &
-    SERVER_PID=$!
-
-    PORT_LIST="$DETECTED_PORT 3000 3001 4000 8000 8080"
-
-    echo "[Server] Waiting for server to be ready..."
-    SERVER_UP=0
-    for i in $(seq 1 30); do
-      if ! kill -0 $SERVER_PID 2>/dev/null; then
-        echo "[Server] Process exited early. Showing logs below:"
-        echo "--------------------------------------------------"
-        cat /tmp/ci-server.log 2>/dev/null || echo "(no log file)"
-        echo "--------------------------------------------------"
-        exit 1
-      fi
-
-      for PORT_TRY in $PORT_LIST; do
-        if node -e "
-          const net = require('net');
-          const s = net.createConnection({port:$PORT_TRY, host:'127.0.0.1'});
-          s.on('connect', () => { s.destroy(); process.exit(0); });
-          s.on('error', () => { process.exit(1); });
-          setTimeout(() => process.exit(1), 1000);
-        " 2>/dev/null; then
-          PORT=$PORT_TRY
-          SERVER_UP=1
-          echo "[Server] Running on port $PORT"
-          break 2
+  # In a monorepo, find the web/frontend app directory to start
+  APP_START_DIR="${APP_DIR}"
+  if [ "${IS_MONOREPO}" = "true" ]; then
+    for CANDIDATE in apps/web apps/frontend packages/web web frontend; do
+      if [ -f "${APP_DIR}/${CANDIDATE}/package.json" ]; then
+        HAS_CANDIDATE_START=$(node -e "try{const p=require('${APP_DIR}/${CANDIDATE}/package.json');process.stdout.write(p.scripts&&(p.scripts.start||p.scripts.dev)?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+        if [ "${HAS_CANDIDATE_START}" = "yes" ]; then
+          log "Monorepo: will start app from ${CANDIDATE}"
+          APP_START_DIR="${APP_DIR}/${CANDIDATE}"
+          HAS_START=$(node -e "try{const p=require('${APP_START_DIR}/package.json');process.stdout.write(p.scripts&&p.scripts.start?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+          HAS_DEV=$(node -e "try{const p=require('${APP_START_DIR}/package.json');process.stdout.write(p.scripts&&p.scripts.dev?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+          break
         fi
-      done
-      sleep 1
+      fi
     done
-
-    if [ $SERVER_UP -eq 0 ]; then
-      echo "[Server] Did not start within 30s - Newman tests might fail."
-      echo "Server logs:"
-      cat /tmp/ci-server.log 2>/dev/null || echo "(no log file)"
-    fi
   fi
 
-  HAS_NEWMAN_SCRIPT=$(node -e "try{const p=require('./package.json');console.log(p.scripts&&p.scripts['test:newman']?'yes':'no')}catch(e){console.log('no')}" 2>/dev/null)
-
-  if [ "$HAS_NEWMAN_SCRIPT" = "yes" ]; then
-    echo "[Newman] Running standardized 'test:newman' script..."
-    if ! $RUN_CMD test:newman; then
-      if [ -n "$SERVER_PID" ]; then
-        kill $SERVER_PID 2>/dev/null
-      fi
-      echo "[Newman] API tests failed. Push blocked."
-      exit 1
-    fi
+  if [ "${HAS_START}" = "yes" ]; then
+    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run start"
+    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run start) </dev/null > /tmp/ci-app.log 2>&1 &
+    APP_PID=$!
+  elif [ "${HAS_DEV}" = "yes" ]; then
+    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run dev"
+    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run dev) </dev/null > /tmp/ci-app.log 2>&1 &
+    APP_PID=$!
   else
-    echo "[Newman] Running local collections directly..."
-    mkdir -p newman-reports
-    ENV_FILE=$(find . -not -path "*/node_modules/*" -not -path "*/.git/*" -name "*.postman_environment.json" 2>/dev/null | head -1)
-    NEWMAN_FAIL=0
+    warn "No 'start' or 'dev' script found — skipping Newman and ZAP"
+    NEWMAN_RESULT="skipped (no start script)"
+    ZAP_RESULT="skipped"
+  fi
 
-    for COLLECTION in $COLLECTIONS; do
-      NAME=$(basename "$COLLECTION" .json)
-      echo "[Newman] Executing: $COLLECTION"
-      ENV_FLAG=""
-      if [ -n "$ENV_FILE" ]; then
-        ENV_FLAG="--environment $ENV_FILE"
+  if [ -n "${APP_PID}" ]; then
+    log "Waiting up to 30s for app to be ready on http://localhost:3000..."
+    APP_READY=false
+    for i in $(seq 1 15); do
+      if ! kill -0 ${APP_PID} 2>/dev/null; then
+        warn "App process exited early. Logs:"
+        cat /tmp/ci-app.log 2>/dev/null || true
+        break
       fi
-
-      newman run "$COLLECTION" $ENV_FLAG --env-var "baseUrl=http://localhost:${PORT:-3000}" --reporters cli,htmlextra --reporter-htmlextra-export "newman-reports/${NAME}-report.html" --bail
-      if [ $? -ne 0 ]; then
-        NEWMAN_FAIL=1
+      if curl -s --connect-timeout 2 --max-time 3 http://localhost:3000 > /dev/null 2>&1; then
+        APP_READY=true
+        break
       fi
+      sleep 2
     done
 
-    if [ $NEWMAN_FAIL -ne 0 ]; then
-      if [ -n "$SERVER_PID" ]; then
-        kill $SERVER_PID 2>/dev/null
-      fi
-      echo "[Newman] API tests failed. Push blocked."
-      exit 1
-    fi
-  fi
+    if [ "${APP_READY}" = "true" ]; then
+      ok "Application is ready."
 
-  if [ -n "$SERVER_PID" ]; then
-    kill $SERVER_PID 2>/dev/null
-    echo "[Server] Stopped."
+      # ── Newman ──────────────────────────────────────────────────────────────
+      if [ -n "${POSTMAN_API_KEY:-}" ] && [ -n "${COLLECTION_UID:-}" ]; then
+        log "Running Newman via test:newman script..."
+        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+          ok "Newman tests passed"
+          NEWMAN_RESULT="passed"
+        else
+          banner_fail "NEWMAN API TESTS"
+          NEWMAN_RESULT="failed"
+        fi
+      elif [ "${HAS_NEWMAN}" = "yes" ]; then
+        log "Running local Newman test:newman script..."
+        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+          ok "Newman tests passed"
+          NEWMAN_RESULT="passed"
+        else
+          banner_fail "NEWMAN API TESTS"
+          NEWMAN_RESULT="failed"
+        fi
+      else
+        warn "Missing POSTMAN_API_KEY/COLLECTION_UID and no test:newman script — skipping Newman"
+        NEWMAN_RESULT="skipped (missing keys)"
+      fi
+
+      # ── OWASP ZAP ───────────────────────────────────────────────────────────
+      log "-------------------------------------------------------"
+      log "STEP 4: OWASP ZAP DAST Scan"
+      log "-------------------------------------------------------"
+      chmod 777 "${REPORTS_DIR}"
+      docker run --rm --network=host \
+        -v "${REPORTS_DIR}:/zap/wrk/:rw" \
+        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+        -t http://localhost:3000 \
+        -x zap-report.xml || true
+
+      if [ -f "${REPORTS_DIR}/zap-report.xml" ] && [ "$(wc -c < "${REPORTS_DIR}/zap-report.xml")" -gt 100 ]; then
+        ok "ZAP Scan completed ($(wc -c < "${REPORTS_DIR}/zap-report.xml") bytes)."
+        ZAP_RESULT="completed"
+      else
+        warn "ZAP Scan failed to produce a valid report."
+        ZAP_RESULT="failed"
+      fi
+    else
+      warn "Application failed to start within 30s. Skipping Newman and ZAP."
+      warn "App logs:"
+      cat /tmp/ci-app.log 2>/dev/null || true
+      NEWMAN_RESULT="failed (app not ready)"
+      ZAP_RESULT="skipped"
+    fi
+
+    log "Shutting down the application..."
+    kill ${APP_PID} 2>/dev/null || true
   fi
-  echo "[Newman] All API tests completed."
+fi
+cd "${WORKSPACE}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 5 — Import to DefectDojo
+# ─────────────────────────────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 5: Importing to DefectDojo"
+log "-------------------------------------------------------"
+
+do_import() {
+  local FILE="$1" SCAN_TYPE="$2" LABEL="$3"
+  if [ ! -f "${FILE}" ]; then
+    warn "Skipping ${LABEL} — file not found: ${FILE}"
+    return 1
+  fi
+  log "Importing ${LABEL} ($(wc -c < "${FILE}") bytes)..."
+  local RESPONSE HTTP_CODE BODY
+  RESPONSE=$(curl -s -w "\n%{http_code}" \
+    -X POST \
+    -H "Authorization: Token ${DEFECTDOJO_API_KEY}" \
+    -F "scan_date=${RUN_DATE}" \
+    -F "scan_type=${SCAN_TYPE}" \
+    -F "engagement=${DEFECTDOJO_ENGAGEMENT_ID}" \
+    -F "file=@${FILE}" \
+    -F "close_old_findings=true" \
+    -F "minimum_severity=Low" \
+    -F "tags=git-sha:${GIT_SHA:0:8},branch:${GIT_BRANCH},date:${RUN_DATE}" \
+    "${DEFECTDOJO_URL}/api/v2/import-scan/")
+  HTTP_CODE=$(echo "${RESPONSE}" | tail -1)
+  BODY=$(echo "${RESPONSE}" | head -n -1)
+  if [ "${HTTP_CODE}" = "201" ]; then
+    ok "${LABEL} imported (HTTP 201)"
+    IMPORT_COUNT=$((IMPORT_COUNT + 1))
+    return 0
+  else
+    warn "${LABEL} import failed (HTTP ${HTTP_CODE})"
+    warn "Response: ${BODY}"
+    return 1
+  fi
+}
+
+do_import \
+  "${REPORTS_DIR}/sonarqube-report.json" \
+  "SonarQube Scan" \
+  "SonarQube" || true
+
+do_import \
+  "${REPORTS_DIR}/zap-report.xml" \
+  "ZAP Scan" \
+  "OWASP ZAP" || true
+
+if [ "${IMPORT_COUNT}" -eq 0 ]; then
+  warn "DefectDojo import failed — pipeline will continue and bundle raw reports"
+  warn "Check:"
+  warn "  1. DEFECTDOJO_API_KEY — must be the key value only (no 'Token ' prefix)"
+  warn "  2. DEFECTDOJO_ENGAGEMENT_ID — must be a valid numeric ID"
+  warn "  3. DEFECTDOJO_URL — e.g. http://your-host:8080"
+  DOJO_IMPORT_FAILED=true
+else
+  ok "${IMPORT_COUNT} reports imported to DefectDojo"
+  DOJO_IMPORT_FAILED=false
 fi
 
-echo ""
-echo "=================================================="
-echo "[CI Checks] All checks completed."
-echo "=================================================="
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 6 — Generate final report from DefectDojo (or bundle raw reports)
+# ─────────────────────────────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 6: Generating final report"
+log "-------------------------------------------------------"
 
-exit 0
+if [ "${DOJO_IMPORT_FAILED}" = "true" ]; then
+  warn "DefectDojo unavailable — bundling raw scan reports as final output"
+
+  SONAR_SIZE=$(wc -c < "${REPORTS_DIR}/sonarqube-report.json" 2>/dev/null || echo 0)
+
+  cat > "${REPORTS_DIR}/final-report.json" <<EOF
+{
+  "scan_summary": {
+    "sha": "${GIT_SHA:0:8}",
+    "branch": "${GIT_BRANCH}",
+    "date": "${RUN_DATE}",
+    "sonarqube_result": "${SONAR_RESULT}",
+    "unit_tests_result": "${UNIT_RESULT}",
+    "newman_tests_result": "${NEWMAN_RESULT}",
+    "zap_result": "${ZAP_RESULT}",
+    "defectdojo_import": "failed",
+    "note": "DefectDojo import failed. Raw reports are included in this artifact.",
+    "raw_reports": {
+      "sonarqube_report_bytes": ${SONAR_SIZE},
+      "zap_report_bytes": $(wc -c < "${REPORTS_DIR}/zap-report.xml" 2>/dev/null || echo 0)
+    }
+  }
+}
+EOF
+  ok "Summary JSON written — raw reports also available in artifact"
+  FINAL_FORMAT="json"
+
+else
+  sleep 15
+
+  log "Fetching findings from DefectDojo..."
+  HTTP=$(curl -s \
+    -o "${REPORTS_DIR}/final-report.json" \
+    -w "%{http_code}" \
+    -H "Authorization: Token ${DEFECTDOJO_API_KEY}" \
+    "${DEFECTDOJO_URL}/api/v2/findings/?engagement=${DEFECTDOJO_ENGAGEMENT_ID}&limit=500")
+  SIZE=$(wc -c < "${REPORTS_DIR}/final-report.json" 2>/dev/null || echo 0)
+
+  if [ "${HTTP}" = "200" ] && [ "${SIZE}" -gt 10 ]; then
+    ok "DefectDojo findings report generated (${SIZE} bytes)"
+    
+    # Merge scan_summary into the fetched findings so HTML report shows both
+    if command -v jq &>/dev/null; then
+      log "Merging pipeline summary into findings..."
+      TEMP_JSON="${REPORTS_DIR}/temp-findings.json"
+      cp "${REPORTS_DIR}/final-report.json" "${TEMP_JSON}"
+      jq --arg sha "${GIT_SHA:0:8}" \
+         --arg branch "${GIT_BRANCH}" \
+         --arg date "${RUN_DATE}" \
+         --arg sonar "${SONAR_RESULT}" \
+         --arg unit "${UNIT_RESULT}" \
+         --arg newman "${NEWMAN_RESULT}" \
+         --arg zap "${ZAP_RESULT}" \
+         '. + {scan_summary: {sha: $sha, branch: $branch, date: $date, sonarqube_result: $sonar, unit_tests_result: $unit, newman_tests_result: $newman, zap_result: $zap}}' \
+         "${TEMP_JSON}" > "${REPORTS_DIR}/final-report.json"
+      rm "${TEMP_JSON}"
+    fi
+
+    FINAL_FORMAT="json"
+  else
+    warn "DefectDojo report fetch failed (HTTP ${HTTP}, ${SIZE} bytes) — falling back to raw bundle"
+    cat > "${REPORTS_DIR}/final-report.json" <<EOF
+{
+  "scan_summary": {
+    "sha": "${GIT_SHA:0:8}",
+    "branch": "${GIT_BRANCH}",
+    "date": "${RUN_DATE}",
+    "sonarqube_result": "${SONAR_RESULT}",
+    "unit_tests_result": "${UNIT_RESULT}",
+    "newman_tests_result": "${NEWMAN_RESULT}",
+    "zap_result": "${ZAP_RESULT}",
+    "defectdojo_import": "imported_but_report_fetch_failed",
+    "note": "Raw reports are included in this artifact."
+  }
+}
+EOF
+    ok "Fallback summary JSON written"
+    FINAL_FORMAT="json"
+  fi
+fi
+
+log "-------------------------------------------------------"
+log "STEP 5: Generating HTML Report"
+log "-------------------------------------------------------"
+if command -v node &>/dev/null; then
+  if [ -f "${WORKSPACE}/scripts/generate-html.js" ] && [ -f "${REPORTS_DIR}/final-report.json" ]; then
+    node "${WORKSPACE}/scripts/generate-html.js" "${REPORTS_DIR}/final-report.json" "${REPORTS_DIR}/final-report.html"
+    if [ -f "${REPORTS_DIR}/final-report.html" ]; then
+      FINAL_FORMAT="json + html"
+    else
+      warn "Failed to generate HTML report."
+    fi
+  else
+    warn "Missing final-report.json or generate-html.js script. Skipping HTML generation."
+  fi
+else
+  warn "Node.js not installed on runner. Skipping HTML generation."
+fi
+
+log ""
+log "Reports directory contents:"
+ls -lh "${REPORTS_DIR}" || true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUMMARY
+# ─────────────────────────────────────────────────────────────────────────────
+log ""
+log "======================================================="
+log " SCAN COMPLETE"
+log " SHA: ${GIT_SHA:0:8}  Branch: ${GIT_BRANCH}"
+log "-------------------------------------------------------"
+log " SonarQube SAST:      ${SONAR_RESULT:-skipped}"
+log " Unit Tests:         ${UNIT_RESULT}"
+log " Newman API Tests:   ${NEWMAN_RESULT}"
+log " OWASP ZAP DAST:      ${ZAP_RESULT}"
+log " DefectDojo imports: ${IMPORT_COUNT}"
+log " Report format:      ${FINAL_FORMAT}"
+log " Report:             ${REPORTS_DIR}/final-report.${FINAL_FORMAT}"
+log "======================================================="
+ok "Done. Report will be uploaded as GitHub artifact."
+
+if [ "${QG_FAILED:-false}" = "true" ]; then
+  log ""
+  fail "TERMINAL ERROR: SonarQube Quality Gate Failed"
+  fail "The pipeline is blocked from passing because security/quality conditions were not met."
+  exit 1
+fi
