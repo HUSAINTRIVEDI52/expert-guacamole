@@ -399,163 +399,164 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 3 — API Integration Testing (Newman)
 # ─────────────────────────────────────────────────────────────────────────────
+# STEP 3 — Newman (optional) + STEP 4 — OWASP ZAP (mandatory)
+# ─────────────────────────────────────────────────────────────────────────────
 log "-------------------------------------------------------"
-log "STEP 3: API Integration Testing (Newman)"
+log "STEP 3: Starting App + Newman (optional) + ZAP (mandatory)"
 log "-------------------------------------------------------"
 cd "${APP_DIR}"
 
-# ── Detect start command ─────────────────────────────────────────────────────
-HAS_START=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['start']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-HAS_DEV=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['dev']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-HAS_NEWMAN=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test:newman']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-
-# Check if Postman collections exist
-COLLECTIONS=$(find . -not -path "*/node_modules/*" -not -path "*/.git/*" -name "*.postman_collection.json" 2>/dev/null)
-
-# ZAP always runs if app starts; Newman only runs if collections/keys present
-if true; then
-  # ── Start the app (monorepo-aware) ──────────────────────────────────────────
-  APP_PID=""
-
-  # In a monorepo, find the web/frontend app directory to start
-  APP_START_DIR="${APP_DIR}"
-  if [ "${IS_MONOREPO}" = "true" ]; then
-    for CANDIDATE in apps/web apps/frontend packages/web web frontend; do
-      if [ -f "${APP_DIR}/${CANDIDATE}/package.json" ]; then
-        HAS_CANDIDATE_START=$(node -e "try{const p=require('${APP_DIR}/${CANDIDATE}/package.json');process.stdout.write(p.scripts&&(p.scripts.start||p.scripts.dev)?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-        if [ "${HAS_CANDIDATE_START}" = "yes" ]; then
-          log "Monorepo: will start app from ${CANDIDATE}"
-          APP_START_DIR="${APP_DIR}/${CANDIDATE}"
-          HAS_START=$(node -e "try{const p=require('${APP_START_DIR}/package.json');process.stdout.write(p.scripts&&p.scripts.start?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-          HAS_DEV=$(node -e "try{const p=require('${APP_START_DIR}/package.json');process.stdout.write(p.scripts&&p.scripts.dev?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
-          break
-        fi
-      fi
-    done
-  fi
-
-  # ── Smart start: read package.json scripts and pick the best one ────────────
-  # Priority: dev > start:dev > start:local > serve > start (with build if Next.js)
-  CHOSEN_SCRIPT=""
-  NEEDS_BUILD=false
-
-  SCRIPTS_JSON=$(node -e "
-    try {
-      const p = require('${APP_START_DIR}/package.json');
-      const s = p.scripts || {};
-      const priority = ['dev','start:dev','start:local','start:ci','serve','start'];
-      for (const k of priority) {
-        if (s[k]) { process.stdout.write(k); break; }
-      }
-    } catch(e) {}
-  " 2>/dev/null)
-
-  CHOSEN_SCRIPT="${SCRIPTS_JSON}"
-
-  if [ -z "${CHOSEN_SCRIPT}" ]; then
-    warn "No runnable script found in ${APP_START_DIR}/package.json — skipping Newman and ZAP"
-    NEWMAN_RESULT="skipped (no start script)"
-    ZAP_RESULT="skipped"
-  else
-    log "Selected start script: '${CHOSEN_SCRIPT}' from ${APP_START_DIR}/package.json"
-
-    # If chosen script is 'start' and this is a Next.js app, run build first
-    IS_NEXTJS=false
-    for CFG in next.config.js next.config.ts next.config.mjs next.config.cjs; do
-      [ -f "${APP_START_DIR}/${CFG}" ] && IS_NEXTJS=true && break
-    done
-
-    if [ "${CHOSEN_SCRIPT}" = "start" ] && [ "${IS_NEXTJS}" = "true" ]; then
-      log "Next.js detected with 'start' script — running 'next build' first..."
-      if timeout 300 sh -c 'cd "${APP_START_DIR}" && ${PKG_MANAGER} run build' 2>&1; then
-        ok "Next.js build completed"
-      else
-        warn "Next.js build failed — ZAP scan may not work correctly"
+# ── Find the app directory to start (monorepo-aware) ─────────────────────────
+APP_START_DIR="${APP_DIR}"
+if [ "${IS_MONOREPO}" = "true" ]; then
+  for CANDIDATE in apps/web apps/frontend packages/web web frontend app; do
+    if [ -f "${APP_DIR}/${CANDIDATE}/package.json" ]; then
+      HAS_SCRIPTS=$(node -e "try{const p=require('${APP_DIR}/${CANDIDATE}/package.json');const s=p.scripts||{};process.stdout.write(s.dev||s.start||s.serve?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+      if [ "${HAS_SCRIPTS}" = "yes" ]; then
+        log "Monorepo: found app in ${CANDIDATE}"
+        APP_START_DIR="${APP_DIR}/${CANDIDATE}"
+        break
       fi
     fi
+  done
+fi
+log "App directory: ${APP_START_DIR}"
 
-    log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run ${CHOSEN_SCRIPT}"
-    sh -c 'cd "${APP_START_DIR}" && exec ${PKG_MANAGER} run ${CHOSEN_SCRIPT}' </dev/null > /tmp/ci-app.log 2>&1 &
-    APP_PID=$!
-  fi
+# ── Pick best start script from package.json ─────────────────────────────────
+# Priority: dev > start:dev > start:local > start:ci > serve > start
+CHOSEN_SCRIPT=$(node -e "
+  try {
+    const p = require('${APP_START_DIR}/package.json');
+    const s = p.scripts || {};
+    const order = ['dev','start:dev','start:local','start:ci','serve','start'];
+    for (const k of order) { if (s[k]) { process.stdout.write(k); break; } }
+  } catch(e) {}
+" 2>/dev/null)
 
-  if [ -n "${APP_PID}" ]; then
-    log "Waiting up to 90s for app to be ready on http://localhost:3000..."
-    APP_READY=false
-    for i in $(seq 1 45); do
-      if ! kill -0 ${APP_PID} 2>/dev/null; then
-        warn "App process exited early. Logs:"
-        cat /tmp/ci-app.log 2>/dev/null || true
-        break
-      fi
-      if curl -s --connect-timeout 2 --max-time 3 http://localhost:3000 > /dev/null 2>&1; then
-        APP_READY=true
-        break
-      fi
-      sleep 2
-    done
+APP_PID=""
+APP_READY=false
 
-    if [ "${APP_READY}" = "true" ]; then
-      ok "Application is ready."
+if [ -z "${CHOSEN_SCRIPT}" ]; then
+  warn "No runnable script found in ${APP_START_DIR}/package.json"
+else
+  log "Selected script: '${CHOSEN_SCRIPT}'"
 
-      # ── Newman ──────────────────────────────────────────────────────────────
-      if [ -n "${POSTMAN_API_KEY:-}" ] && [ -n "${COLLECTION_UID:-}" ]; then
-        log "Running Newman via test:newman script..."
-        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
-          ok "Newman tests passed"
-          NEWMAN_RESULT="passed"
-        else
-          banner_fail "NEWMAN API TESTS"
-          NEWMAN_RESULT="failed"
-        fi
-      elif [ "${HAS_NEWMAN}" = "yes" ]; then
-        log "Running local Newman test:newman script..."
-        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
-          ok "Newman tests passed"
-          NEWMAN_RESULT="passed"
-        else
-          banner_fail "NEWMAN API TESTS"
-          NEWMAN_RESULT="failed"
-        fi
-      else
-        warn "Missing POSTMAN_API_KEY/COLLECTION_UID and no test:newman script — skipping Newman"
-        NEWMAN_RESULT="skipped (missing keys)"
-      fi
+  # If 'start' chosen and Next.js detected, build first
+  IS_NEXTJS=false
+  for CFG in next.config.js next.config.ts next.config.mjs next.config.cjs; do
+    [ -f "${APP_START_DIR}/${CFG}" ] && IS_NEXTJS=true && break
+  done
 
-      # ── OWASP ZAP ───────────────────────────────────────────────────────────
-      log "-------------------------------------------------------"
-      log "STEP 4: OWASP ZAP DAST Scan"
-      log "-------------------------------------------------------"
-      chmod 777 "${REPORTS_DIR}"
-      docker run --rm --network=host \
-        -v "${REPORTS_DIR}:/zap/wrk/:rw" \
-        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-        -t http://localhost:3000 \
-        -x zap-report.xml || true
-
-      if [ -f "${REPORTS_DIR}/zap-report.xml" ] && [ "$(wc -c < "${REPORTS_DIR}/zap-report.xml")" -gt 100 ]; then
-        ok "ZAP Scan completed ($(wc -c < "${REPORTS_DIR}/zap-report.xml") bytes)."
-        ZAP_RESULT="completed"
-      else
-        warn "ZAP Scan failed to produce a valid report."
-        ZAP_RESULT="failed"
-      fi
+  if [ "${CHOSEN_SCRIPT}" = "start" ] && [ "${IS_NEXTJS}" = "true" ]; then
+    log "Next.js + 'start' detected — running build first (timeout 5min)..."
+    cd "${APP_START_DIR}"
+    if timeout 300 ${PKG_MANAGER} run build 2>&1; then
+      ok "Next.js build completed"
     else
-      warn "Application failed to start within 30s. Skipping Newman and ZAP."
-      warn "App logs:"
-      cat /tmp/ci-app.log 2>/dev/null || true
-      NEWMAN_RESULT="failed (app not ready)"
-      ZAP_RESULT="skipped"
+      warn "Next.js build failed — switching to 'dev' mode if available"
+      HAS_DEV=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts.dev?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+      [ "${HAS_DEV}" = "yes" ] && CHOSEN_SCRIPT="dev"
     fi
+    cd "${APP_DIR}"
+  fi
 
-    log "Shutting down the application..."
-    kill ${APP_PID} 2>/dev/null || true
+  log "Starting: cd ${APP_START_DIR} && ${PKG_MANAGER} run ${CHOSEN_SCRIPT}"
+  cd "${APP_START_DIR}"
+  ${PKG_MANAGER} run ${CHOSEN_SCRIPT} </dev/null > /tmp/ci-app.log 2>&1 &
+  APP_PID=$!
+  cd "${APP_DIR}"
+
+  # ── Wait up to 90s for app to be ready ─────────────────────────────────────
+  log "Waiting up to 90s for app on http://localhost:3000..."
+  for i in $(seq 1 45); do
+    if ! kill -0 ${APP_PID} 2>/dev/null; then
+      warn "App process exited early. Logs:"
+      cat /tmp/ci-app.log 2>/dev/null || true
+      break
+    fi
+    if curl -s --connect-timeout 2 --max-time 3 http://localhost:3000 > /dev/null 2>&1; then
+      APP_READY=true
+      ok "App is ready on http://localhost:3000"
+      break
+    fi
+    sleep 2
+  done
+
+  if [ "${APP_READY}" = "false" ]; then
+    warn "App did not become ready within 90s."
+    warn "App logs:"
+    cat /tmp/ci-app.log 2>/dev/null || true
   fi
 fi
+
+# ── Newman — OPTIONAL (skip gracefully if no config) ─────────────────────────
+HAS_NEWMAN=$(node -e "try{const p=require('${APP_START_DIR}/package.json');process.stdout.write(p.scripts&&p.scripts['test:newman']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+COLLECTIONS=$(find "${APP_DIR}" -not -path "*/node_modules/*" -not -path "*/.git/*" -name "*.postman_collection.json" 2>/dev/null | head -1)
+
+if [ "${APP_READY}" = "true" ]; then
+  if [ -n "${POSTMAN_API_KEY:-}" ] && [ -n "${COLLECTION_UID:-}" ]; then
+    log "Running Newman (cloud collection)..."
+    if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+      ok "Newman tests passed"; NEWMAN_RESULT="passed"
+    else
+      warn "Newman tests failed"; NEWMAN_RESULT="failed"
+    fi
+  elif [ "${HAS_NEWMAN}" = "yes" ] || [ -n "${COLLECTIONS}" ]; then
+    log "Running Newman (local collections)..."
+    if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+      ok "Newman tests passed"; NEWMAN_RESULT="passed"
+    else
+      warn "Newman tests failed"; NEWMAN_RESULT="failed"
+    fi
+  else
+    warn "No Postman collections or test:newman script found — skipping Newman"
+    NEWMAN_RESULT="skipped (no collections)"
+  fi
+else
+  NEWMAN_RESULT="skipped (app not ready)"
+fi
+
+# ── OWASP ZAP — MANDATORY ─────────────────────────────────────────────────────
+log "-------------------------------------------------------"
+log "STEP 4: OWASP ZAP DAST Scan (mandatory)"
+log "-------------------------------------------------------"
+
+if [ "${APP_READY}" = "false" ]; then
+  warn "App not ready — ZAP will scan anyway and may report connection errors"
+fi
+
+chmod 777 "${REPORTS_DIR}"
+ok "Pulling ZAP Docker image..."
+docker pull ghcr.io/zaproxy/zaproxy:stable 2>&1 | tail -3
+
+log "Running ZAP baseline scan against http://localhost:3000..."
+docker run --rm --network=host \
+  -v "${REPORTS_DIR}:/zap/wrk/:rw" \
+  ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+  -t http://localhost:3000 \
+  -x zap-report.xml \
+  -r zap-report.html \
+  -J zap-report.json \
+  -I 2>&1 || true
+# -I = don't fail on warnings, only on errors
+
+ZAP_SIZE=$(wc -c < "${REPORTS_DIR}/zap-report.xml" 2>/dev/null || echo 0)
+if [ "${ZAP_SIZE}" -gt 100 ]; then
+  ok "ZAP scan completed (${ZAP_SIZE} bytes) — report at ${REPORTS_DIR}/zap-report.xml"
+  ZAP_RESULT="completed"
+else
+  warn "ZAP report missing or empty (${ZAP_SIZE} bytes)"
+  ZAP_RESULT="failed"
+fi
+
+# ── Shutdown app ──────────────────────────────────────────────────────────────
+if [ -n "${APP_PID}" ]; then
+  kill ${APP_PID} 2>/dev/null || true
+  log "App process stopped."
+fi
+
 cd "${WORKSPACE}"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 5 — Import to DefectDojo
 # ─────────────────────────────────────────────────────────────────────────────
 log "-------------------------------------------------------"
 log "STEP 5: Importing to DefectDojo"
