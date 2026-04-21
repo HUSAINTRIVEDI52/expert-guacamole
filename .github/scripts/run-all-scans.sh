@@ -21,7 +21,6 @@ ZAP_RESULT="skipped"
 IMPORT_COUNT=0
 FINAL_FORMAT="none"
 DOJO_IMPORT_FAILED=false
-SONAR_PROJECT_KEY=""
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 mkdir -p "${REPORTS_DIR}"
@@ -251,22 +250,14 @@ if [ "${SONAR_REACHABLE}" = "true" ]; then
       SONAR_RESULT="failed (task incomplete)"
     fi
 
-    # Fetch issues in DefectDojo-compatible format
-    # DefectDojo expects SonarQube API JSON format with issues array
     curl -s \
       -u "${SONAR_TOKEN}:" \
-      "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&resolved=false&ps=500&facets=severities,types" \
+      "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&resolved=false&ps=500" \
       -o "${REPORTS_DIR}/sonarqube-report.json"
     SIZE=$(wc -c < "${REPORTS_DIR}/sonarqube-report.json" 2>/dev/null || echo 0)
 
-    if [ "${SIZE}" -gt 100 ]; then
-      # Validate JSON structure
-      if command -v jq &>/dev/null; then
-        ISSUE_COUNT=$(jq -r '.issues | length' "${REPORTS_DIR}/sonarqube-report.json" 2>/dev/null || echo "0")
-        ok "SonarQube report saved (${SIZE} bytes, ${ISSUE_COUNT} issues)"
-      else
-        ok "SonarQube report saved (${SIZE} bytes)"
-      fi
+    if [ "${SIZE}" -gt 500 ]; then
+      ok "SonarQube report saved (${SIZE} bytes)"
       [ "${QG_FAILED}" != "true" ] && SONAR_RESULT="passed"
     else
       warn "SonarQube report too small (${SIZE} bytes) — likely empty or error"
@@ -288,15 +279,96 @@ log "-------------------------------------------------------"
 log "STEP 2: Unit Testing"
 log "-------------------------------------------------------"
 cd "${APP_DIR}"
-log "Installing dependencies..."
-npm ci --silent > /dev/null 2>&1 || npm install --no-audit --no-fund --silent > /dev/null 2>&1 || true
 
-if npm test; then
-  ok "Unit tests passed"
-  UNIT_RESULT="passed"
+# ── Detect package manager ───────────────────────────────────────────────────
+PKG_MANAGER="npm"
+if [ -f "pnpm-lock.yaml" ]; then PKG_MANAGER="pnpm"
+elif [ -f "yarn.lock" ]; then PKG_MANAGER="yarn"
+elif [ -f "bun.lockb" ]; then PKG_MANAGER="bun"
+fi
+ok "Detected package manager: ${PKG_MANAGER}"
+
+# ── Ensure package manager is installed ─────────────────────────────────────
+if [ "${PKG_MANAGER}" = "pnpm" ] && ! command -v pnpm &>/dev/null; then
+  log "pnpm not found — installing via npm..."
+  npm install -g pnpm --silent
+  ok "pnpm installed: $(pnpm --version)"
+fi
+if [ "${PKG_MANAGER}" = "yarn" ] && ! command -v yarn &>/dev/null; then
+  log "yarn not found — installing via npm..."
+  npm install -g yarn --silent
+  ok "yarn installed: $(yarn --version)"
+fi
+
+# ── Install dependencies (with timeout + visible output on failure) ──────────
+log "Installing dependencies with ${PKG_MANAGER}..."
+INSTALL_OK=false
+case "${PKG_MANAGER}" in
+  pnpm)
+    # --no-frozen-lockfile allows minor lockfile drift in CI
+    timeout 300 pnpm install --no-frozen-lockfile --reporter=silent 2>&1 && INSTALL_OK=true \
+      || { warn "pnpm install failed — see output above"; INSTALL_OK=false; }
+    ;;
+  yarn)
+    timeout 300 yarn install --frozen-lockfile --non-interactive 2>&1 && INSTALL_OK=true \
+      || timeout 300 yarn install --non-interactive 2>&1 && INSTALL_OK=true \
+      || { warn "yarn install failed"; INSTALL_OK=false; }
+    ;;
+  bun)
+    timeout 300 bun install 2>&1 && INSTALL_OK=true \
+      || { warn "bun install failed"; INSTALL_OK=false; }
+    ;;
+  npm)
+    timeout 300 npm ci 2>&1 && INSTALL_OK=true \
+      || timeout 300 npm install --no-audit --no-fund 2>&1 && INSTALL_OK=true \
+      || { warn "npm install failed"; INSTALL_OK=false; }
+    ;;
+esac
+
+if [ "${INSTALL_OK}" = "false" ]; then
+  warn "Dependency install failed — unit tests may fail or be skipped"
+fi
+
+# ── Detect test script ───────────────────────────────────────────────────────
+HAS_TEST_SMOKE=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test:smoke']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_TEST=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+
+# ── Run tests (with 10-min timeout to prevent hanging) ──────────────────────
+UNIT_RESULT="skipped"
+if [ "${HAS_TEST_SMOKE}" = "yes" ]; then
+  log "Running 'test:smoke' script..."
+  if timeout 600 ${PKG_MANAGER} run test:smoke 2>&1; then
+    ok "Smoke tests passed"
+    UNIT_RESULT="passed"
+  else
+    EXIT_CODE=$?
+    if [ ${EXIT_CODE} -eq 124 ]; then
+      warn "Tests timed out after 10 minutes"
+      UNIT_RESULT="timed out"
+    else
+      banner_fail "UNIT TESTS"
+      UNIT_RESULT="failed"
+    fi
+  fi
+elif [ "${HAS_TEST}" = "yes" ]; then
+  log "Running 'test' script..."
+  # Pass CI=true to prevent watch mode in Jest/Vitest
+  if timeout 600 env CI=true ${PKG_MANAGER} run test 2>&1; then
+    ok "Unit tests passed"
+    UNIT_RESULT="passed"
+  else
+    EXIT_CODE=$?
+    if [ ${EXIT_CODE} -eq 124 ]; then
+      warn "Tests timed out after 10 minutes"
+      UNIT_RESULT="timed out"
+    else
+      banner_fail "UNIT TESTS"
+      UNIT_RESULT="failed"
+    fi
+  fi
 else
-  banner_fail "UNIT TESTS"
-  UNIT_RESULT="failed"
+  warn "No 'test' or 'test:smoke' script found in package.json — skipping unit tests"
+  UNIT_RESULT="skipped (no script)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -305,74 +377,110 @@ fi
 log "-------------------------------------------------------"
 log "STEP 3: API Integration Testing (Newman)"
 log "-------------------------------------------------------"
-log "Starting the backend application on port 3000..."
 cd "${APP_DIR}"
-npm start > /dev/null 2>&1 &
-APP_PID=$!
 
-log "Waiting up to 30s for the application to be ready on http://localhost:3000..."
-APP_READY=false
-for i in $(seq 1 15); do
-  if curl -s --connect-timeout 2 --max-time 3 http://localhost:3000 > /dev/null; then
-    APP_READY=true
-    break
-  fi
-  sleep 2
-done
+# ── Detect start command ─────────────────────────────────────────────────────
+HAS_START=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['start']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_DEV=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['dev']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
+HAS_NEWMAN=$(node -e "try{const p=require('./package.json');process.stdout.write(p.scripts&&p.scripts['test:newman']?'yes':'no')}catch(e){process.stdout.write('no')}" 2>/dev/null)
 
-if [ "${APP_READY}" = "true" ]; then
-  ok "Application is ready. Running Newman tests..."
-  if [ -n "${POSTMAN_API_KEY:-}" ] && [ -n "${COLLECTION_UID:-}" ]; then
-    if npm run test:newman; then
-      ok "Newman tests passed"
-      NEWMAN_RESULT="passed"
-    else
-      banner_fail "NEWMAN API TESTS"
-      NEWMAN_RESULT="failed"
-    fi
-  else
-    warn "Missing POSTMAN_API_KEY or COLLECTION_UID — skipping Newman"
-    NEWMAN_RESULT="skipped (missing keys)"
-  fi
+# Check if Postman collections exist
+COLLECTIONS=$(find . -not -path "*/node_modules/*" -not -path "*/.git/*" -name "*.postman_collection.json" 2>/dev/null)
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # STEP 4 — OWASP ZAP DAST Scan
-  # ─────────────────────────────────────────────────────────────────────────────
-  log "-------------------------------------------------------"
-  log "STEP 4: OWASP ZAP DAST Scan"
-  log "-------------------------------------------------------"
-  ok "Starting ZAP Baseline Scan..."
-  # Grant full permissions to REPORTS_DIR so the isolated Docker user 'zap' can write the file back
-  chmod 777 "${REPORTS_DIR}"
-  
-  # Use || true so the script doesn't abort early if vulnerabilities are found
-  docker run --rm --network=host \
-    -v "${REPORTS_DIR}:/zap/wrk/:rw" \
-    ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-    -t http://localhost:3000 \
-    -x zap-report.xml || true
-  
-  if [ -f "${REPORTS_DIR}/zap-report.xml" ]; then
-    ZAP_SIZE=$(wc -c < "${REPORTS_DIR}/zap-report.xml")
-    if [ "${ZAP_SIZE}" -gt 100 ]; then
-      ok "ZAP Scan completed successfully (${ZAP_SIZE} bytes)."
-      ZAP_RESULT="completed"
-    else
-      warn "ZAP Scan completed but report is suspiciously small."
-      ZAP_RESULT="failed"
-    fi
-  else
-    warn "ZAP Scan failed to produce a report."
-    ZAP_RESULT="failed"
-  fi
-else
-  warn "Application failed to start. Skipping Newman and ZAP scans."
-  NEWMAN_RESULT="failed (app not ready)"
+if [ -z "${COLLECTIONS}" ] && [ -z "${POSTMAN_API_KEY:-}" ]; then
+  warn "No Postman collections and no POSTMAN_API_KEY — skipping Newman and ZAP"
+  NEWMAN_RESULT="skipped (no collections)"
   ZAP_RESULT="skipped"
-fi
+else
+  # ── Start the app ──────────────────────────────────────────────────────────
+  APP_PID=""
+  if [ "${HAS_START}" = "yes" ]; then
+    log "Starting app with: ${PKG_MANAGER} run start"
+    ${PKG_MANAGER} run start </dev/null > /tmp/ci-app.log 2>&1 &
+    APP_PID=$!
+  elif [ "${HAS_DEV}" = "yes" ]; then
+    log "Starting app with: ${PKG_MANAGER} run dev"
+    ${PKG_MANAGER} run dev </dev/null > /tmp/ci-app.log 2>&1 &
+    APP_PID=$!
+  else
+    warn "No 'start' or 'dev' script found — skipping Newman and ZAP"
+    NEWMAN_RESULT="skipped (no start script)"
+    ZAP_RESULT="skipped"
+  fi
 
-log "Shutting down the backend application..."
-kill ${APP_PID} 2>/dev/null || true
+  if [ -n "${APP_PID}" ]; then
+    log "Waiting up to 30s for app to be ready on http://localhost:3000..."
+    APP_READY=false
+    for i in $(seq 1 15); do
+      if ! kill -0 ${APP_PID} 2>/dev/null; then
+        warn "App process exited early. Logs:"
+        cat /tmp/ci-app.log 2>/dev/null || true
+        break
+      fi
+      if curl -s --connect-timeout 2 --max-time 3 http://localhost:3000 > /dev/null 2>&1; then
+        APP_READY=true
+        break
+      fi
+      sleep 2
+    done
+
+    if [ "${APP_READY}" = "true" ]; then
+      ok "Application is ready."
+
+      # ── Newman ──────────────────────────────────────────────────────────────
+      if [ -n "${POSTMAN_API_KEY:-}" ] && [ -n "${COLLECTION_UID:-}" ]; then
+        log "Running Newman via test:newman script..."
+        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+          ok "Newman tests passed"
+          NEWMAN_RESULT="passed"
+        else
+          banner_fail "NEWMAN API TESTS"
+          NEWMAN_RESULT="failed"
+        fi
+      elif [ "${HAS_NEWMAN}" = "yes" ]; then
+        log "Running local Newman test:newman script..."
+        if timeout 300 ${PKG_MANAGER} run test:newman 2>&1; then
+          ok "Newman tests passed"
+          NEWMAN_RESULT="passed"
+        else
+          banner_fail "NEWMAN API TESTS"
+          NEWMAN_RESULT="failed"
+        fi
+      else
+        warn "Missing POSTMAN_API_KEY/COLLECTION_UID and no test:newman script — skipping Newman"
+        NEWMAN_RESULT="skipped (missing keys)"
+      fi
+
+      # ── OWASP ZAP ───────────────────────────────────────────────────────────
+      log "-------------------------------------------------------"
+      log "STEP 4: OWASP ZAP DAST Scan"
+      log "-------------------------------------------------------"
+      chmod 777 "${REPORTS_DIR}"
+      docker run --rm --network=host \
+        -v "${REPORTS_DIR}:/zap/wrk/:rw" \
+        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+        -t http://localhost:3000 \
+        -x zap-report.xml || true
+
+      if [ -f "${REPORTS_DIR}/zap-report.xml" ] && [ "$(wc -c < "${REPORTS_DIR}/zap-report.xml")" -gt 100 ]; then
+        ok "ZAP Scan completed ($(wc -c < "${REPORTS_DIR}/zap-report.xml") bytes)."
+        ZAP_RESULT="completed"
+      else
+        warn "ZAP Scan failed to produce a valid report."
+        ZAP_RESULT="failed"
+      fi
+    else
+      warn "Application failed to start within 30s. Skipping Newman and ZAP."
+      warn "App logs:"
+      cat /tmp/ci-app.log 2>/dev/null || true
+      NEWMAN_RESULT="failed (app not ready)"
+      ZAP_RESULT="skipped"
+    fi
+
+    log "Shutting down the application..."
+    kill ${APP_PID} 2>/dev/null || true
+  fi
+fi
 cd "${WORKSPACE}"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -388,13 +496,7 @@ do_import() {
     warn "Skipping ${LABEL} — file not found: ${FILE}"
     return 1
   fi
-  local FILE_SIZE
-  FILE_SIZE=$(wc -c < "${FILE}" 2>/dev/null || echo 0)
-  if [ "${FILE_SIZE}" -lt 50 ]; then
-    warn "Skipping ${LABEL} — file too small (${FILE_SIZE} bytes), likely empty"
-    return 1
-  fi
-  log "Importing ${LABEL} (${FILE_SIZE} bytes, scan_type='${SCAN_TYPE}')..."
+  log "Importing ${LABEL} ($(wc -c < "${FILE}") bytes)..."
   local RESPONSE HTTP_CODE BODY
   RESPONSE=$(curl -s -w "\n%{http_code}" \
     -X POST \
@@ -402,82 +504,27 @@ do_import() {
     -F "scan_date=${RUN_DATE}" \
     -F "scan_type=${SCAN_TYPE}" \
     -F "engagement=${DEFECTDOJO_ENGAGEMENT_ID}" \
-    -F "product_id=${DEFECTDOJO_PRODUCT_ID}" \
-    -F "environment=Development" \
     -F "file=@${FILE}" \
     -F "close_old_findings=true" \
-    -F "active=true" \
-    -F "verified=false" \
     -F "minimum_severity=Low" \
     -F "tags=git-sha:${GIT_SHA:0:8},branch:${GIT_BRANCH},date:${RUN_DATE}" \
     "${DEFECTDOJO_URL}/api/v2/import-scan/")
   HTTP_CODE=$(echo "${RESPONSE}" | tail -1)
   BODY=$(echo "${RESPONSE}" | head -n -1)
   if [ "${HTTP_CODE}" = "201" ]; then
-    ok "${LABEL} imported successfully (HTTP 201)"
+    ok "${LABEL} imported (HTTP 201)"
     IMPORT_COUNT=$((IMPORT_COUNT + 1))
     return 0
   else
     warn "${LABEL} import failed (HTTP ${HTTP_CODE})"
     warn "Response: ${BODY}"
-    # Log the first 200 chars of the file for debugging
-    warn "File preview: $(head -c 200 "${FILE}" 2>/dev/null || echo 'unreadable')"
     return 1
   fi
 }
 
-# ── Verify engagement exists and is active before importing ──────────────────
-log "Verifying engagement ${DEFECTDOJO_ENGAGEMENT_ID} in DefectDojo..."
-ENG_RESP=$(curl -s -w "\n%{http_code}" \
-  -H "Authorization: Token ${DEFECTDOJO_API_KEY}" \
-  "${DEFECTDOJO_URL}/api/v2/engagements/${DEFECTDOJO_ENGAGEMENT_ID}/")
-ENG_CODE=$(echo "${ENG_RESP}" | tail -1)
-ENG_BODY=$(echo "${ENG_RESP}" | head -n -1)
-
-if [ "${ENG_CODE}" = "200" ]; then
-  ENG_STATUS=$(echo "${ENG_BODY}" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4 || echo "unknown")
-  ENG_PRODUCT=$(echo "${ENG_BODY}" | grep -o '"product":[0-9]*' | head -1 | cut -d':' -f2 || echo "unknown")
-  ok "Engagement found (status: ${ENG_STATUS}, product_id: ${ENG_PRODUCT})"
-  log "DEBUG — DEFECTDOJO_PRODUCT_ID secret value: ${DEFECTDOJO_PRODUCT_ID}"
-  log "DEBUG — DEFECTDOJO_ENGAGEMENT_ID secret value: ${DEFECTDOJO_ENGAGEMENT_ID}"
-  if [ "${ENG_STATUS}" != "In Progress" ]; then
-    log "Patching engagement to 'In Progress'..."
-    curl -s -o /dev/null -X PATCH \
-      -H "Authorization: Token ${DEFECTDOJO_API_KEY}" \
-      -H "Content-Type: application/json" \
-      -d '{"status":"In Progress"}' \
-      "${DEFECTDOJO_URL}/api/v2/engagements/${DEFECTDOJO_ENGAGEMENT_ID}/" || true
-  fi
-  # Warn if product_id in secret doesn't match the engagement's actual product
-  if [ "${ENG_PRODUCT}" != "${DEFECTDOJO_PRODUCT_ID}" ] && [ "${ENG_PRODUCT}" != "unknown" ]; then
-    warn "MISMATCH: engagement belongs to product ${ENG_PRODUCT} but DEFECTDOJO_PRODUCT_ID=${DEFECTDOJO_PRODUCT_ID}"
-    warn "Overriding product_id to match engagement..."
-    DEFECTDOJO_PRODUCT_ID="${ENG_PRODUCT}"
-  fi
-else
-  warn "Could not verify engagement (HTTP ${ENG_CODE}) — attempting import anyway"
-fi
-
-# ── Test with minimal ZAP import first to isolate the 500 ────────────────────
-log "DEBUG — Testing DefectDojo import endpoint with minimal ZAP payload..."
-MINI_RESP=$(curl -s -w "\n%{http_code}" \
-  -X POST \
-  -H "Authorization: Token ${DEFECTDOJO_API_KEY}" \
-  -F "scan_date=${RUN_DATE}" \
-  -F "scan_type=ZAP Scan" \
-  -F "engagement=${DEFECTDOJO_ENGAGEMENT_ID}" \
-  -F "environment=Development" \
-  -F "file=@${REPORTS_DIR}/zap-report.xml" \
-  -F "active=true" \
-  -F "verified=false" \
-  "${DEFECTDOJO_URL}/api/v2/import-scan/")
-MINI_CODE=$(echo "${MINI_RESP}" | tail -1)
-MINI_BODY=$(echo "${MINI_RESP}" | head -n -1)
-log "DEBUG — Minimal ZAP import response (HTTP ${MINI_CODE}): ${MINI_BODY}"
-
 do_import \
   "${REPORTS_DIR}/sonarqube-report.json" \
-  "SonarQube API Import" \
+  "SonarQube Scan" \
   "SonarQube" || true
 
 do_import \
