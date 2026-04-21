@@ -303,29 +303,54 @@ fi
 # ── Install dependencies (with timeout + visible output on failure) ──────────
 log "Installing dependencies with ${PKG_MANAGER}..."
 INSTALL_OK=false
+
+# Detect monorepo (pnpm-workspace.yaml or workspaces in package.json)
+IS_MONOREPO=false
+if [ -f "pnpm-workspace.yaml" ] || [ -f "pnpm-workspace.yml" ]; then
+  IS_MONOREPO=true
+  log "Monorepo detected (pnpm workspace)"
+elif node -e "try{const p=require('./package.json');process.exit(p.workspaces?0:1)}catch(e){process.exit(1)}" 2>/dev/null; then
+  IS_MONOREPO=true
+  log "Monorepo detected (package.json workspaces)"
+fi
+
 case "${PKG_MANAGER}" in
   pnpm)
-    # --no-frozen-lockfile allows minor lockfile drift in CI
-    timeout 300 pnpm install --no-frozen-lockfile --reporter=silent 2>&1 && INSTALL_OK=true \
-      || { warn "pnpm install failed — see output above"; INSTALL_OK=false; }
+    if [ "${IS_MONOREPO}" = "true" ]; then
+      # In monorepo: install from root, ignore scripts to avoid hanging postinstalls
+      timeout 300 pnpm install --no-frozen-lockfile --ignore-scripts 2>&1 \
+        && INSTALL_OK=true \
+        || { warn "pnpm install failed"; INSTALL_OK=false; }
+    else
+      timeout 300 pnpm install --no-frozen-lockfile --ignore-scripts 2>&1 \
+        && INSTALL_OK=true \
+        || { warn "pnpm install failed"; INSTALL_OK=false; }
+    fi
     ;;
   yarn)
-    timeout 300 yarn install --frozen-lockfile --non-interactive 2>&1 && INSTALL_OK=true \
-      || timeout 300 yarn install --non-interactive 2>&1 && INSTALL_OK=true \
+    timeout 300 yarn install --frozen-lockfile --non-interactive --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || timeout 300 yarn install --non-interactive --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
       || { warn "yarn install failed"; INSTALL_OK=false; }
     ;;
   bun)
-    timeout 300 bun install 2>&1 && INSTALL_OK=true \
+    timeout 300 bun install --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
       || { warn "bun install failed"; INSTALL_OK=false; }
     ;;
   npm)
-    timeout 300 npm ci 2>&1 && INSTALL_OK=true \
-      || timeout 300 npm install --no-audit --no-fund 2>&1 && INSTALL_OK=true \
+    timeout 300 npm ci --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
+      || timeout 300 npm install --no-audit --no-fund --ignore-scripts 2>&1 \
+      && INSTALL_OK=true \
       || { warn "npm install failed"; INSTALL_OK=false; }
     ;;
 esac
 
-if [ "${INSTALL_OK}" = "false" ]; then
+if [ "${INSTALL_OK}" = "true" ]; then
+  ok "Dependencies installed"
+else
   warn "Dependency install failed — unit tests may fail or be skipped"
 fi
 
