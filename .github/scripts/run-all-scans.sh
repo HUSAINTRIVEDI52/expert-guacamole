@@ -467,7 +467,7 @@ if true; then
 
     if [ "${CHOSEN_SCRIPT}" = "start" ] && [ "${IS_NEXTJS}" = "true" ]; then
       log "Next.js detected with 'start' script — running 'next build' first..."
-      if timeout 300 (cd "${APP_START_DIR}" && ${PKG_MANAGER} run build) 2>&1; then
+      if timeout 300 sh -c 'cd "${APP_START_DIR}" && ${PKG_MANAGER} run build' 2>&1; then
         ok "Next.js build completed"
       else
         warn "Next.js build failed — ZAP scan may not work correctly"
@@ -475,7 +475,7 @@ if true; then
     fi
 
     log "Starting app from ${APP_START_DIR} with: ${PKG_MANAGER} run ${CHOSEN_SCRIPT}"
-    (cd "${APP_START_DIR}" && ${PKG_MANAGER} run ${CHOSEN_SCRIPT}) </dev/null > /tmp/ci-app.log 2>&1 &
+    sh -c 'cd "${APP_START_DIR}" && exec ${PKG_MANAGER} run ${CHOSEN_SCRIPT}' </dev/null > /tmp/ci-app.log 2>&1 &
     APP_PID=$!
   fi
 
